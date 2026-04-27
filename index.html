@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Gait Lab — 歩行解析</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,700&family=JetBrains+Mono:wght@400;500&family=Inter+Tight:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+--ink: #1a2332;
+--ink-soft: #2d3a4a;
+--paper: #f4ede0;
+--paper-warm: #ebe1cf;
+--accent: #2d6a4f;
+--accent-bright: #52b788;
+--rust: #c1654c;
+--gold: #d4a574;
+--line: rgba(26, 35, 50, 0.12);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+background: var(--paper);
+color: var(--ink);
+font-family: 'Inter Tight', sans-serif;
+line-height: 1.5;
+overflow-x: hidden;
+}
+body {
+background-image:
+radial-gradient(circle at 20% 10%, rgba(82, 183, 136, 0.06), transparent 40%),
+radial-gradient(circle at 90% 80%, rgba(193, 101, 76, 0.05), transparent 40%);
+min-height: 100vh;
+}
+.grain {
+position: fixed; inset: 0; pointer-events: none; z-index: 1; opacity: 0.5;
+background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3CfeColorMatrix values='0 0 0 0 0.1 0 0 0 0 0.1 0 0 0 0 0.1 0 0 0 0.08 0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+.container {
+max-width: 1080px;
+margin: 0 auto;
+padding: 32px 24px 80px;
+position: relative; z-index: 2;
+}
+header {
+display: flex; justify-content: space-between; align-items: flex-start;
+padding-bottom: 24px;
+border-bottom: 1px solid var(--line);
+margin-bottom: 40px;
+}
+.logo {
+font-family: 'Fraunces', serif;
+font-weight: 300; font-style: italic;
+font-size: clamp(28px, 4vw, 38px);
+letter-spacing: -0.02em;
+line-height: 1;
+}
+.logo span {
+font-style: normal; font-weight: 500;
+color: var(--accent);
+}
+.meta {
+font-family: 'JetBrains Mono', monospace;
+font-size: 11px;
+text-align: right;
+color: var(--ink-soft);
+letter-spacing: 0.05em;
+}
+.meta strong {
+display: block;
+font-weight: 500;
+color: var(--ink);
+font-size: 12px;
+}
+.hero {
+margin-bottom: 48px;
+max-width: 700px;
+}
+.hero h1 {
+font-family: 'Fraunces', serif;
+font-weight: 300;
+font-size: clamp(40px, 6vw, 68px);
+line-height: 1.05;
+letter-spacing: -0.025em;
+margin-bottom: 20px;
+}
+.hero h1 em {
+font-style: italic;
+color: var(--accent);
+}
+.hero p {
+font-size: 17px;
+color: var(--ink-soft);
+max-width: 540px;
+}
+/* upload card */
+.stage {
+background: var(--paper-warm);
+border: 1px solid var(--line);
+border-radius: 4px;
+padding: 0;
+overflow: hidden;
+box-shadow: 0 1px 0 rgba(255, 255, 255, 0.6) inset, 0 20px 40px -30px rgba(26, 35, 50, 0.3);
+}
+.upload-zone {
+padding: 60px 40px;
+text-align: center;
+border: 2px dashed transparent;
+transition: all 0.3s ease;
+cursor: pointer;
+position: relative;
+}
+.upload-zone:hover, .upload-zone.drag {
+background: rgba(82, 183, 136, 0.05);
+border-color: var(--accent-bright);
+}
+.upload-icon {
+width: 56px; height: 56px;
+margin: 0 auto 20px;
+border: 1.5px solid var(--ink);
+border-radius: 50%;
+display: flex; align-items: center; justify-content: center;
+font-family: 'Fraunces', serif;
+font-size: 28px; font-weight: 300;
+transform: rotate(-4deg);
+transition: transform 0.4s ease;
+}
+.upload-zone:hover .upload-icon { transform: rotate(0deg) scale(1.05); }
+.upload-zone h3 {
+font-family: 'Fraunces', serif;
+font-weight: 400;
+font-size: 22px;
+margin-bottom: 6px;
+}
+.upload-zone p {
+color: var(--ink-soft);
+font-size: 14px;
+}
+.upload-zone .specs {
+margin-top: 20px;
+font-family: 'JetBrains Mono', monospace;
+font-size: 10px;
+letter-spacing: 0.1em;
+color: var(--ink-soft);
+text-transform: uppercase;
+}
+#fileInput { display: none; }
+/* analysis stage */
+.analysis { display: none; }
+.video-frame {
+background: #0d1419;
+position: relative;
+aspect-ratio: 16/9;
+overflow: hidden;
+}
+#video, #canvas {
+position: absolute; top: 0; left: 0;
+width: 100%; height: 100%;
+object-fit: contain;
+}
+#video { opacity: 0.85; }
+.frame-label {
+position: absolute;
+top: 14px; left: 14px;
+font-family: 'JetBrains Mono', monospace;
+font-size: 10px;
+color: rgba(255,255,255,0.85);
+letter-spacing: 0.15em;
+background: rgba(0,0,0,0.4);
+padding: 5px 10px;
+border-radius: 2px;
+z-index: 10;
+text-transform: uppercase;
+}
+.frame-label .dot {
+display: inline-block; width: 6px; height: 6px;
+background: #52b788; border-radius: 50%;
+margin-right: 6px;
+animation: pulse 1.5s ease-in-out infinite;
+}
+@keyframes pulse { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
+.progress-bar {
+height: 3px;
+background: rgba(26, 35, 50, 0.1);
+overflow: hidden;
+}
+.progress-bar > div {
+height: 100%;
+background: var(--accent);
+width: 0%;
+transition: width 0.2s ease;
+}
+.toolbar {
+display: flex; justify-content: space-between; align-items: center;
+padding: 16px 24px;
+border-top: 1px solid var(--line);
+font-family: 'JetBrains Mono', monospace;
+font-size: 11px;
+color: var(--ink-soft);
+}
+.btn {
+background: var(--ink);
+color: var(--paper);
+border: none;
+padding: 10px 20px;
+font-family: 'Inter Tight', sans-serif;
+font-size: 13px; font-weight: 500;
+letter-spacing: 0.02em;
+cursor: pointer;
+border-radius: 2px;
+transition: all 0.2s ease;
+}
+.btn:hover { background: var(--accent); }
+.btn-ghost {
+background: transparent;
+color: var(--ink);
+border: 1px solid var(--ink);
+}
+.btn-ghost:hover { background: var(--ink); color: var(--paper); }
+/* results */
+.results { display: none; margin-top: 48px; }
+.score-section {
+display: grid;
+grid-template-columns: 1fr 1.4fr;
+gap: 60px;
+padding: 48px 0;
+border-bottom: 1px solid var(--line);
+align-items: center;
+}
+@media (max-width: 720px) {
+.score-section { grid-template-columns: 1fr; gap: 32px; padding: 32px 0; }
+}
+.score-display {
+text-align: center;
+position: relative;
+}
+.score-circle {
+position: relative;
+width: 240px; height: 240px;
+margin: 0 auto;
+}
+.score-circle svg {
+transform: rotate(-90deg);
+}
+.score-circle .bg-ring {
+fill: none;
+stroke: rgba(26, 35, 50, 0.08);
+stroke-width: 6;
+}
+.score-circle .fg-ring {
+fill: none;
+stroke: var(--accent);
+stroke-width: 6;
+stroke-linecap: round;
+transition: stroke-dashoffset 1.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.score-number {
+position: absolute; inset: 0;
+display: flex; flex-direction: column; align-items: center; justify-content: center;
+}
+.score-number .num {
+font-family: 'Fraunces', serif;
+font-weight: 300;
+font-size: 90px;
+line-height: 1;
+letter-spacing: -0.04em;
+}
+.score-number .max {
+font-family: 'JetBrains Mono', monospace;
+font-size: 11px;
+color: var(--ink-soft);
+letter-spacing: 0.15em;
+margin-top: 4px;
+}
+.score-grade {
+margin-top: 18px;
+font-family: 'Fraunces', serif;
+font-style: italic;
+font-size: 22px;
+}
+.breakdown h2 {
+font-family: 'Fraunces', serif;
+font-weight: 300;
+font-size: 28px;
+letter-spacing: -0.02em;
+margin-bottom: 24px;
+}
+.metric {
+display: grid;
+grid-template-columns: 1fr auto;
+gap: 16px;
+padding: 14px 0;
+border-bottom: 1px solid var(--line);
+align-items: center;
+}
+.metric:last-child { border-bottom: none; }
+.metric-name {
+font-size: 14px;
+font-weight: 500;
+}
+.metric-name span {
+display: block;
+font-family: 'JetBrains Mono', monospace;
+font-size: 10px;
+color: var(--ink-soft);
+font-weight: 400;
+letter-spacing: 0.05em;
+margin-top: 3px;
+text-transform: uppercase;
+}
+.metric-bar {
+width: 140px;
+height: 4px;
+background: rgba(26, 35, 50, 0.08);
+position: relative;
+border-radius: 2px;
+overflow: hidden;
+}
+.metric-bar > div {
+height: 100%;
+background: var(--accent);
+width: 0%;
+transition: width 1.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.metric-score {
+font-family: 'JetBrains Mono', monospace;
+font-size: 13px;
+font-weight: 500;
+min-width: 36px;
+text-align: right;
+}
+/* advice */
+.advice-section {
+padding: 48px 0;
+}
+.advice-section .label {
+font-family: 'JetBrains Mono', monospace;
+font-size: 10px;
+letter-spacing: 0.2em;
+color: var(--accent);
+text-transform: uppercase;
+margin-bottom: 12px;
+}
+.advice-section h2 {
+font-family: 'Fraunces', serif;
+font-weight: 300;
+font-size: 36px;
+letter-spacing: -0.02em;
+margin-bottom: 32px;
+max-width: 600px;
+line-height: 1.15;
+}
+.advice-section h2 em {
+font-style: italic; color: var(--accent);
+}
+.advice-list {
+display: grid;
+gap: 0;
+}
+.advice-card {
+padding: 24px 0;
+border-top: 1px solid var(--line);
+display: grid;
+grid-template-columns: 60px 1fr;
+gap: 20px;
+}
+.advice-card:last-child { border-bottom: 1px solid var(--line); }
+.advice-num {
+font-family: 'Fraunces', serif;
+font-weight: 300;
+font-style: italic;
+font-size: 32px;
+color: var(--accent);
+line-height: 1;
+}
+.advice-content h4 {
+font-family: 'Fraunces', serif;
+font-weight: 500;
+font-size: 19px;
+margin-bottom: 6px;
+}
+.advice-content p {
+color: var(--ink-soft);
+font-size: 14.5px;
+line-height: 1.6;
+}
+/* error */
+.error-msg {
+background: rgba(193, 101, 76, 0.1);
+border-left: 3px solid var(--rust);
+padding: 14px 18px;
+margin: 16px 0;
+font-size: 14px;
+color: var(--rust);
+border-radius: 2px;
+}
+/* loading */
+.loading-status {
+text-align: center;
+padding: 24px;
+font-family: 'JetBrains Mono', monospace;
+font-size: 12px;
+color: var(--ink-soft);
+letter-spacing: 0.1em;
+}
+footer {
+margin-top: 80px;
+padding-top: 32px;
+border-top: 1px solid var(--line);
+display: flex; justify-content: space-between;
+font-family: 'JetBrains Mono', monospace;
+font-size: 11px;
+color: var(--ink-soft);
+letter-spacing: 0.05em;
+}
+footer em {
+font-family: 'Fraunces', serif; font-style: italic; color: var(--ink);
+}
+</style>
+</head>
+<body>
+<div class="grain"></div>
+
+<div class="container">
+<header>
+<div class="logo">Gait<span>·</span><em style="font-style:normal;font-family:'JetBrains Mono',monospace;font-size:0.4em;letter-spacing:0.3em;vertical-align:middle;color:var(--accent)">LAB</em></div>
+<div class="meta">
+<strong>v0.1 / browser-only</strong>
+MEDIAPIPE · CLIENT-SIDE · 2026
+</div>
+</header>
+
+<section class="hero">
+<h1>あなたの歩き方を、<em>定量化する。</em></h1>
+<p>横から撮った15秒の動画をアップロードしてください。33個の身体ランドマークを追跡し、姿勢・対称性・リズムから100点満点で歩行を採点します。動画はサーバーに送信されません。すべてあなたの端末内で処理されます。</p>
+</section>
+
+<div class="stage">
+<!-- upload -->
+<div class="upload-zone" id="uploadZone">
+<div class="upload-icon">↑</div>
+<h3>動画をドロップ または タップして選択</h3>
+<p>横から撮影された歩行動画 / MP4・MOV・WebM</p>
+<div class="specs">推奨 10〜20秒 · 全身が映る · 横向き視点</div>
+<input type="file" id="fileInput" accept="video/*" />
+</div>
+
+<!-- analysis -->
+<div class="analysis" id="analysisView">
+<div class="video-frame">
+<span class="frame-label" id="frameLabel"><span class="dot"></span>解析中</span>
+<video id="video" muted playsinline></video>
+<canvas id="canvas"></canvas>
+</div>
+<div class="progress-bar"><div id="progressFill"></div></div>
+<div class="toolbar">
+<span id="statusText">初期化中...</span>
+<button class="btn btn-ghost" id="resetBtn">やり直す</button>
+</div>
+</div>
+</div>
+
+<div id="errorBox"></div>
+
+<!-- results -->
+<section class="results" id="resultsView">
+<div class="score-section">
+<div class="score-display">
+<div class="score-circle">
+<svg width="240" height="240" viewBox="0 0 240 240">
+<circle class="bg-ring" cx="120" cy="120" r="108" />
+<circle class="fg-ring" id="scoreRing" cx="120" cy="120" r="108"
+stroke-dasharray="678.58" stroke-dashoffset="678.58" />
+</svg>
+<div class="score-number">
+<div class="num" id="scoreNum">0</div>
+<div class="max">/ 100 POINTS</div>
+</div>
+</div>
+<div class="score-grade" id="scoreGrade">—</div>
+</div>
+
+<div class="breakdown">
+<h2>項目別スコア</h2>
+<div id="metricsList"></div>
+</div>
+</div>
+
+<div class="advice-section">
+<div class="label">— RECOMMENDATIONS</div>
+<h2>向上させるための、<em>具体的な処方箋。</em></h2>
+<div class="advice-list" id="adviceList"></div>
+</div>
+</section>
+
+<footer>
+<span>GAIT LAB / OPEN SOURCE</span>
+<span><em>walk well, live well.</em></span>
+</footer>
+</div>
+
+<script type="module">
+import { PoseLandmarker, FilesetResolver, DrawingUtils } from
+'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs';
+
+// ---------- DOM ----------
+const $ = (id) => document.getElementById(id);
+const uploadZone = $('uploadZone');
+const fileInput = $('fileInput');
+const analysisView = $('analysisView');
+const resultsView = $('resultsView');
+const video = $('video');
+const canvas = $('canvas');
+const ctx = canvas.getContext('2d');
+const progressFill = $('progressFill');
+const statusText = $('statusText');
+const resetBtn = $('resetBtn');
+const errorBox = $('errorBox');
+
+// ---------- pose landmarker ----------
+let poseLandmarker = null;
+let drawingUtils = null;
+
+async function initPose() {
+statusText.textContent = 'モデル読み込み中...';
+const vision = await FilesetResolver.forVisionTasks(
+'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm'
+);
+poseLandmarker = await PoseLandmarker.createFromOptions(vision, {
+baseOptions: {
+modelAssetPath:
+'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task',
+delegate: 'GPU'
+},
+runningMode: 'VIDEO',
+numPoses: 1
+});
+drawingUtils = new DrawingUtils(ctx);
+statusText.textContent = 'モデル準備完了';
+}
+
+// ---------- upload handlers ----------
+uploadZone.addEventListener('click', () => fileInput.click());
+uploadZone.addEventListener('dragover', (e) => { e.preventDefault(); uploadZone.classList.add('drag'); });
+uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag'));
+uploadZone.addEventListener('drop', (e) => {
+e.preventDefault();
+uploadZone.classList.remove('drag');
+if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+});
+fileInput.addEventListener('change', (e) => {
+if (e.target.files[0]) handleFile(e.target.files[0]);
+});
+resetBtn.addEventListener('click', () => location.reload());
+
+function showError(msg) {
+errorBox.innerHTML = `<div class="error-msg">${msg}</div>`;
+}
+
+async function handleFile(file) {
+errorBox.innerHTML = '';
+if (!file.type.startsWith('video/')) {
+showError('動画ファイルを選択してください');
+return;
+}
+uploadZone.style.display = 'none';
+analysisView.style.display = 'block';
+
+if (!poseLandmarker) {
+try { await initPose(); }
+catch (err) {
+showError('モデルの読み込みに失敗しました: ' + err.message);
+return;
+}
+}
+
+const url = URL.createObjectURL(file);
+video.src = url;
+await new Promise((res, rej) => {
+video.onloadedmetadata = res;
+video.onerror = () => rej(new Error('動画の読み込みに失敗'));
+});
+
+// size canvas to video
+canvas.width = video.videoWidth;
+canvas.height = video.videoHeight;
+
+await analyzeVideo();
+}
+
+// ---------- frame-by-frame analysis ----------
+const frames = []; // {t, landmarks}
+
+async function analyzeVideo() {
+const duration = Math.min(video.duration, 30); // cap
+const fps = 12; // sample at 12fps for speed
+const totalFrames = Math.floor(duration * fps);
+let frameIdx = 0;
+
+statusText.textContent = `${totalFrames}フレームを解析します`;
+
+for (let i = 0; i < totalFrames; i++) {
+const t = (i / fps);
+video.currentTime = t;
+await new Promise(res => video.onseeked = res);
+
+const result = poseLandmarker.detectForVideo(video, performance.now());
+
+// draw video frame on canvas
+ctx.save();
+ctx.clearRect(0, 0, canvas.width, canvas.height);
+ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+if (result.landmarks && result.landmarks[0]) {
+// skeleton overlay
+drawingUtils.drawConnectors(result.landmarks[0], PoseLandmarker.POSE_CONNECTIONS,
+{ color: '#52b788', lineWidth: 3 });
+drawingUtils.drawLandmarks(result.landmarks[0],
+{ color: '#f4ede0', fillColor: '#2d6a4f', radius: 4, lineWidth: 1 });
+frames.push({ t, lm: result.landmarks[0] });
+}
+ctx.restore();
+
+frameIdx++;
+progressFill.style.width = `${(frameIdx / totalFrames) * 100}%`;
+statusText.textContent = `フレーム ${frameIdx} / ${totalFrames}`;
+}
+
+if (frames.length < 5) {
+showError('身体を検出できませんでした。全身がはっきり映る横向きの動画でお試しください。');
+return;
+}
+
+statusText.textContent = '採点中...';
+await new Promise(r => setTimeout(r, 400));
+
+const result = scoreGait(frames);
+showResults(result);
+}
+
+// ---------- scoring ----------
+// MediaPipe Pose landmark indices
+const L = {
+NOSE: 0, L_SHOULDER: 11, R_SHOULDER: 12,
+L_HIP: 23, R_HIP: 24,
+L_KNEE: 25, R_KNEE: 26,
+L_ANKLE: 27, R_ANKLE: 28,
+L_HEEL: 29, R_HEEL: 30, L_FOOT: 31, R_FOOT: 32
+};
+
+function midpoint(a, b) { return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }; }
+function dist(a, b) { return Math.hypot(a.x - b.x, a.y - b.y); }
+
+function scoreGait(frames) {
+// 1. Posture verticality: vertical alignment of shoulders-hips-ankles
+const postureDevs = [];
+// 2. Head position: forward head (nose vs shoulder midpoint x)
+const headOffsets = [];
+// 3. Pelvic tilt: |left_hip.y - right_hip.y|
+const pelvicTilts = [];
+// 4. Step length symmetry: variance in stride distances per side
+const ankleDistances = [];
+// 5. Rhythm: consistency of stride (std / mean of cycle)
+
+for (const f of frames) {
+const lm = f.lm;
+const sh = midpoint(lm[L.L_SHOULDER], lm[L.R_SHOULDER]);
+const hp = midpoint(lm[L.L_HIP], lm[L.R_HIP]);
+const an = midpoint(lm[L.L_ANKLE], lm[L.R_ANKLE]);
+
+// posture: x deviation of sh-hp-an line from vertical, normalized by torso height
+const torso = Math.abs(sh.y - hp.y) || 0.001;
+const dev1 = Math.abs(sh.x - hp.x) / torso;
+const dev2 = Math.abs(hp.x - an.x) / torso;
+postureDevs.push((dev1 + dev2) / 2);
+
+// head: nose forward of shoulders relative to torso height
+headOffsets.push(Math.abs(lm[L.NOSE].x - sh.x) / torso);
+
+// pelvic tilt
+const shoulderWidth = Math.abs(lm[L.L_SHOULDER].x - lm[L.R_SHOULDER].x) || 0.001;
+pelvicTilts.push(Math.abs(lm[L.L_HIP].y - lm[L.R_HIP].y) / shoulderWidth);
+
+// ankle x distance (for stride detection)
+ankleDistances.push(lm[L.L_ANKLE].x - lm[L.R_ANKLE].x);
+}
+
+const mean = a => a.reduce((s, v) => s + v, 0) / a.length;
+const std = a => { const m = mean(a); return Math.sqrt(mean(a.map(v => (v - m) ** 2))); };
+
+const avgPosture = mean(postureDevs);
+const avgHead = mean(headOffsets);
+const avgPelvic = mean(pelvicTilts);
+
+// stride detection: count zero crossings of (L_ankle.x - R_ankle.x)
+const crossings = [];
+for (let i = 1; i < ankleDistances.length; i++) {
+if (Math.sign(ankleDistances[i]) !== Math.sign(ankleDistances[i - 1])) {
+crossings.push(frames[i].t);
+}
+}
+const cycles = [];
+for (let i = 1; i < crossings.length; i++) cycles.push(crossings[i] - crossings[i - 1]);
+
+// step symmetry: peak amplitudes alternating sides
+const peaks = [];
+for (let i = 1; i < ankleDistances.length - 1; i++) {
+const a = ankleDistances[i];
+if ((a > ankleDistances[i-1] && a > ankleDistances[i+1]) ||
+(a < ankleDistances[i-1] && a < ankleDistances[i+1])) {
+peaks.push(Math.abs(a));
+}
+}
+const symmetry = peaks.length > 1 ? std(peaks) / (mean(peaks) || 1) : 0.5;
+const rhythm = cycles.length > 1 ? std(cycles) / (mean(cycles) || 1) : 0.5;
+
+// ---- map deviations to 0-100 scores ----
+// smaller is better — design tolerable thresholds
+const postureScore = clamp01_to_100(avgPosture, 0.05, 0.30);
+const headScore = clamp01_to_100(avgHead, 0.08, 0.35);
+const pelvicScore = clamp01_to_100(avgPelvic, 0.05, 0.25);
+const symmetryScore = clamp01_to_100(symmetry, 0.10, 0.50);
+const rhythmScore = clamp01_to_100(rhythm, 0.10, 0.45);
+
+const overall = Math.round(
+postureScore * 0.25 + headScore * 0.18 +
+pelvicScore * 0.20 + symmetryScore * 0.20 + rhythmScore * 0.17
+);
+
+return {
+overall,
+metrics: [
+{ key: 'posture', name: '姿勢の直立度', sub: 'TRUNK ALIGNMENT', score: Math.round(postureScore), raw: avgPosture },
+{ key: 'head', name: '頭部位置', sub: 'HEAD POSITION', score: Math.round(headScore), raw: avgHead },
+{ key: 'pelvic', name: '骨盤の水平性', sub: 'PELVIC LEVEL', score: Math.round(pelvicScore), raw: avgPelvic },
+{ key: 'symmetry', name: '左右対称性', sub: 'STEP SYMMETRY', score: Math.round(symmetryScore), raw: symmetry },
+{ key: 'rhythm', name: 'リズムの安定性', sub: 'CADENCE STABILITY', score: Math.round(rhythmScore), raw: rhythm }
+]
+};
+}
+
+// good ≤ a => 100, bad ≥ b => 0, linear between
+function clamp01_to_100(v, good, bad) {
+if (v <= good) return 100;
+if (v >= bad) return 30; // floor at 30 so users get encouragement
+return 100 - ((v - good) / (bad - good)) * 70;
+}
+
+// ---------- advice generation ----------
+const ADVICE_BANK = {
+posture: {
+title: '体幹をまっすぐに保つ',
+body: '頭頂部から1本の糸で吊り上げられているイメージを意識しましょう。立っている時にお腹を軽く引き締め、肋骨を骨盤の真上に乗せる感覚を1日数回練習すると、歩行中の前傾が改善します。'
+},
+head: {
+title: '視線を前方15メートル先へ',
+body: 'スマホ姿勢などで頭が前に出る「前方頭位」は重心を崩します。耳が肩の真上に来るよう、顎を軽く引いて視線を地面ではなく前方遠くに向けて歩いてみてください。'
+},
+pelvic: {
+title: '中臀筋を強化する',
+body: '骨盤が左右に揺れているサインです。片足立ちを左右30秒ずつ、サイドプランクを20秒×3セット週3回行うと、立脚中の骨盤の安定性が高まります。'
+},
+symmetry: {
+title: '左右対称な歩幅を意識する',
+body: '片側の歩幅が大きい・小さい傾向があります。直線上を一定のリズムで歩く練習や、メトロノームに合わせたウォーキングが有効です。痛みがある場合は専門家にご相談ください。'
+},
+rhythm: {
+title: 'リズムを一定に保つ',
+body: 'ケイデンス（歩調）にばらつきがあります。1分間100〜110歩を目安に、同じテンポで歩く練習をしてみましょう。スマホのメトロノームアプリを使うと効果的です。'
+}
+};
+
+function generateAdvice(metrics) {
+// sort metrics by lowest score, take top 3
+const sorted = [...metrics].sort((a, b) => a.score - b.score);
+const lowest = sorted.slice(0, 3).filter(m => m.score < 90);
+if (lowest.length === 0) {
+return [{
+title: '素晴らしい歩行です',
+body: '全項目で高いスコアを記録しています。現在の歩き方を維持するため、週3〜4回の30分ウォーキングと、軽いストレッチを継続することをお勧めします。'
+}];
+}
+return lowest.map(m => ADVICE_BANK[m.key]);
+}
+
+// ---------- render results ----------
+function gradeFor(score) {
+if (score >= 90) return '理想的';
+if (score >= 75) return '良好';
+if (score >= 60) return '標準的';
+if (score >= 45) return '改善の余地あり';
+return '注意が必要';
+}
+
+function showResults({ overall, metrics }) {
+analysisView.style.display = 'none';
+resultsView.style.display = 'block';
+resultsView.scrollIntoView({ behavior: 'smooth' });
+
+// animate score
+const ring = $('scoreRing');
+const circumference = 2 * Math.PI * 108;
+ring.setAttribute('stroke-dasharray', circumference);
+setTimeout(() => {
+ring.style.strokeDashoffset = circumference - (circumference * overall / 100);
+}, 200);
+
+// count up
+const numEl = $('scoreNum');
+let cur = 0;
+const step = Math.max(1, Math.ceil(overall / 40));
+const timer = setInterval(() => {
+cur += step;
+if (cur >= overall) { cur = overall; clearInterval(timer); }
+numEl.textContent = cur;
+}, 40);
+
+$('scoreGrade').textContent = gradeFor(overall);
+
+// metrics list
+const list = $('metricsList');
+list.innerHTML = metrics.map((m, i) => `
+<div class="metric">
+<div class="metric-name">${m.name}<span>${m.sub}</span></div>
+<div style="display:flex;align-items:center;gap:14px;">
+<div class="metric-bar"><div data-score="${m.score}"></div></div>
+<div class="metric-score">${m.score}</div>
+</div>
+</div>
+`).join('');
+setTimeout(() => {
+list.querySelectorAll('.metric-bar > div').forEach(el => {
+el.style.width = el.dataset.score + '%';
+});
+}, 400);
+
+// advice
+const advice = generateAdvice(metrics);
+$('adviceList').innerHTML = advice.map((a, i) => `
+<div class="advice-card">
+<div class="advice-num">0${i + 1}</div>
+<div class="advice-content">
+<h4>${a.title}</h4>
+<p>${a.body}</p>
+</div>
+</div>
+`).join('');
+}
+</script>
+</body>
+</html>
