@@ -910,7 +910,7 @@ color: #888;
 <section class="view active" id="view-measure">
 <div class="hero">
 <h1>歩き方を、<em>定量化する。</em></h1>
-<p>横または前から撮った10〜20秒の動画をアップロードしてください。動画はサーバーに送信されません。</p>
+<p>横・前・トレッドミルから撮った10〜20秒の動画をアップロードしてください。動画はサーバーに送信されません。</p>
 </div>
 
 <div class="setup-card">
@@ -919,8 +919,10 @@ color: #888;
 <div class="field">
 <label>視点</label>
 <select id="viewpoint">
-<option value="side">横から（推奨）</option>
-<option value="front">前から</option>
+<option value="side">横から（通常歩行）</option>
+<option value="front">前から（通常歩行）</option>
+<option value="tm_side">トレッドミル（横から）</option>
+<option value="tm_front">トレッドミル（前から）</option>
 </select>
 </div>
 <div class="field">
@@ -951,7 +953,7 @@ color: #888;
 <div class="upload-icon">↑</div>
 <h3>動画をドロップ または タップして選択</h3>
 <p>歩行動画 / MP4・MOV・WebM</p>
-<div class="specs">推奨 10〜20秒 · 全身が映る</div>
+<div class="specs">推奨 10〜20秒 · 全身が映る · トレッドミル対応</div>
 <div class="takes-indicator" id="takesIndicator"></div>
 <input type="file" id="fileInput" accept="video/*" />
 </div>
@@ -1649,6 +1651,7 @@ async function runGuideCheck(video) {
 const samples = [video.duration * 0.2, video.duration * 0.5, video.duration * 0.8];
 let detectedCount = 0;
 let lastLm = null;
+const isTreadmill = $('viewpoint').value.startsWith('tm_');
 
 for (const t of samples) {
 video.currentTime = t;
@@ -1667,10 +1670,22 @@ const nose = lastLm[0];
 const ankleY = (lastLm[27].y + lastLm[28].y) / 2;
 const headBottomCoverage = ankleY - nose.y;
 
-if (headBottomCoverage < 0.55) return { ok: false, message: '全身がフレームに収まっていない可能性があります。少し離れて撮影してください。' };
-if (nose.y < 0.05 || ankleY > 0.95) return { ok: false, message: '頭か足がフレーム端に近づいています。余白を持たせて撮影してください。' };
+// Treadmill: framing tolerance is more lenient (often shoes/feet partially hidden by tread belt)
+const minCoverage = isTreadmill ? 0.45 : 0.55;
+const edgeTolerance = isTreadmill ? 0.02 : 0.05;
 
-return { ok: true, message: '全身がはっきり映っています。良い撮影です。' };
+if (headBottomCoverage < minCoverage) {
+return { ok: false, message: isTreadmill
+? 'トレッドミルから少し離れてカメラを設置し、頭から足までが映るようにしてください。'
+: '全身がフレームに収まっていない可能性があります。少し離れて撮影してください。' };
+}
+if (nose.y < edgeTolerance || ankleY > 1 - edgeTolerance) {
+return { ok: false, message: '頭か足がフレーム端に近づいています。余白を持たせて撮影してください。' };
+}
+
+return { ok: true, message: isTreadmill
+? 'トレッドミルでの撮影に適した映りです。'
+: '全身がはっきり映っています。良い撮影です。' };
 }
 
 const L = {
@@ -1685,7 +1700,11 @@ function mean(a) { return a.reduce((s, v) => s + v, 0) / a.length; }
 function std(a) { const m = mean(a); return Math.sqrt(mean(a.map(v => (v - m) ** 2))); }
 
 function scoreGait(frames, viewpoint = 'side') {
+const isTreadmill = viewpoint.startsWith('tm_');
+
 const postureDevs = [], headOffsets = [], pelvicTilts = [], ankleDistances = [];
+// For treadmill: track ankle vertical positions (y) for cycle detection
+const lAnkleY = [], rAnkleY = [];
 const problemFrames = { posture: [], head: [], pelvic: [] };
 
 frames.forEach((f, idx) => {
@@ -1711,22 +1730,58 @@ pelvicTilts.push(pelvic);
 if (pelvic > 0.18) problemFrames.pelvic.push(idx);
 
 ankleDistances.push(lm[L.L_ANKLE].x - lm[L.R_ANKLE].x);
+lAnkleY.push(lm[L.L_ANKLE].y);
+rAnkleY.push(lm[L.R_ANKLE].y);
 });
 
 const avgPosture = mean(postureDevs);
 const avgHead = mean(headOffsets);
 const avgPelvic = mean(pelvicTilts);
 
+// ===== Cycle detection: different for treadmill vs normal walking =====
+let cycles = [], peaks = [];
+
+if (isTreadmill) {
+// Treadmill: detect cycles via ankle vertical motion (foot lift = peak)
+// Use the ankle that has more vertical variation
+const lStd = std(lAnkleY);
+const rStd = std(rAnkleY);
+const ankleY = lStd > rStd ? lAnkleY : rAnkleY;
+const otherAnkleY = lStd > rStd ? rAnkleY : lAnkleY;
+
+// Find local minima of y (top of foot lift = smallest y in image coords)
+const minTimes = [];
+const maxTimes = [];
+for (let i = 2; i < ankleY.length - 2; i++) {
+// Min (foot raised highest)
+if (ankleY[i] < ankleY[i-1] && ankleY[i] < ankleY[i-2] &&
+ankleY[i] < ankleY[i+1] && ankleY[i] < ankleY[i+2]) {
+minTimes.push(frames[i].t);
+}
+// Max (foot on ground)
+if (ankleY[i] > ankleY[i-1] && ankleY[i] > ankleY[i-2] &&
+ankleY[i] > ankleY[i+1] && ankleY[i] > ankleY[i+2]) {
+maxTimes.push(frames[i].t);
+}
+}
+
+for (let i = 1; i < minTimes.length; i++) cycles.push(minTimes[i] - minTimes[i-1]);
+
+// Symmetry: compare left vs right ankle vertical range
+const lRange = Math.max(...lAnkleY) - Math.min(...lAnkleY);
+const rRange = Math.max(...rAnkleY) - Math.min(...rAnkleY);
+const symRatio = Math.abs(lRange - rRange) / Math.max(lRange, rRange, 0.001);
+peaks = [lRange, rRange, symRatio]; // store for later
+} else {
+// Normal walking: detect via x crossings of left-right ankle distance
 const crossings = [];
 for (let i = 1; i < ankleDistances.length; i++) {
 if (Math.sign(ankleDistances[i]) !== Math.sign(ankleDistances[i - 1])) {
 crossings.push(frames[i].t);
 }
 }
-const cycles = [];
 for (let i = 1; i < crossings.length; i++) cycles.push(crossings[i] - crossings[i - 1]);
 
-const peaks = [];
 for (let i = 1; i < ankleDistances.length - 1; i++) {
 const a = ankleDistances[i];
 if ((a > ankleDistances[i-1] && a > ankleDistances[i+1]) ||
@@ -1734,9 +1789,21 @@ if ((a > ankleDistances[i-1] && a > ankleDistances[i+1]) ||
 peaks.push(Math.abs(a));
 }
 }
-const symmetry = peaks.length > 1 ? std(peaks) / (mean(peaks) || 1) : 0.5;
-const rhythm = cycles.length > 1 ? std(cycles) / (mean(cycles) || 1) : 0.5;
-const cadence = cycles.length > 0 ? 60 / mean(cycles) * 2 : 0;
+}
+
+let symmetry, rhythm, cadence;
+
+if (isTreadmill) {
+// peaks holds [lRange, rRange, symRatio]
+const symRatio = peaks[2] || 0.5;
+symmetry = symRatio; // 0 = perfectly symmetric, 1 = totally asymmetric
+rhythm = cycles.length > 1 ? std(cycles) / (mean(cycles) || 1) : 0.5;
+cadence = cycles.length > 0 ? 60 / mean(cycles) * 2 : 0;
+} else {
+symmetry = peaks.length > 1 ? std(peaks) / (mean(peaks) || 1) : 0.5;
+rhythm = cycles.length > 1 ? std(cycles) / (mean(cycles) || 1) : 0.5;
+cadence = cycles.length > 0 ? 60 / mean(cycles) * 2 : 0;
+}
 
 const postureScore = clampScore(avgPosture, 0.05, 0.30);
 const headScore = clampScore(avgHead, 0.08, 0.35);
@@ -1760,6 +1827,7 @@ metrics: [
 ],
 cadence: Math.round(cadence),
 viewpoint,
+isTreadmill,
 pains: Array.from(selectedPains),
 problemFrames,
 timestamp: Date.now()
@@ -1918,7 +1986,13 @@ $('resultsView').scrollIntoView({ behavior: 'smooth' });
 // print header
 const u = getCurrentUser();
 $('printName').textContent = u ? u.name : '—';
-$('printDate').textContent = '測定日: ' + new Date(result.timestamp).toLocaleString('ja-JP');
+const vpLabel = {
+'side': '横から（通常）',
+'front': '前から（通常）',
+'tm_side': 'トレッドミル（横から）',
+'tm_front': 'トレッドミル（前から）'
+}[result.viewpoint] || result.viewpoint;
+$('printDate').textContent = '測定日: ' + new Date(result.timestamp).toLocaleString('ja-JP') + ' / ' + vpLabel;
 const meta = [];
 if (u?.age) meta.push(u.age + '歳');
 if (u?.gender === 'm') meta.push('男性');
@@ -2066,6 +2140,7 @@ overall: result.overall,
 metrics: result.metrics.map(m => ({ key: m.key, score: m.score })),
 cadence: result.cadence,
 viewpoint: result.viewpoint,
+isTreadmill: result.isTreadmill || false,
 pains: result.pains
 });
 if (u.history.length > 200) u.history.shift();
@@ -2122,18 +2197,20 @@ ${previous ? `<div class="delta ${delta >= 0 ? 'up' : 'down'}">${delta >= 0 ? '+
 </div>
 <div class="history-list">
 <h3 style="font-family:'Fraunces',serif;font-weight:300;font-size:22px;margin-bottom:12px;">測定記録</h3>
-${[...history].reverse().map(h => `
+${[...history].reverse().map(h => {
+const vp = {'side':'横','front':'前','tm_side':'TM 横','tm_front':'TM 前'}[h.viewpoint] || '横';
+return `
 <div class="history-item">
 <div>
 <div class="hi-date">${new Date(h.timestamp).toLocaleString('ja-JP', {year:'numeric',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})}</div>
-<div style="font-size:11px;color:var(--ink-soft);margin-top:2px;">ケイデンス: ${h.cadence || '—'} 歩/分</div>
+<div style="font-size:11px;color:var(--ink-soft);margin-top:2px;">${vp} · ケイデンス: ${h.cadence || '—'} 歩/分</div>
 </div>
 <div class="hi-score">${h.overall}</div>
 <div class="hi-actions">
 <button data-id="${h.id}" data-act="del">削除</button>
 </div>
 </div>
-`).join('')}
+`;}).join('')}
 </div>
 `;
 
