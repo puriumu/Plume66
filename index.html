@@ -1,4 +1,4 @@
-!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ja">
 <head>
 <meta charset="UTF-8" />
@@ -44,15 +44,17 @@ padding: 24px 20px 80px;
 position: relative; z-index: 2;
 }
 header {
-display: flex; justify-content: space-between; align-items: flex-start;
-padding-bottom: 20px;
+display: flex; justify-content: space-between; align-items: center;
+padding-bottom: 16px;
 border-bottom: 1px solid var(--line);
-margin-bottom: 28px;
+margin-bottom: 16px;
+gap: 12px;
+flex-wrap: wrap;
 }
 .logo {
 font-family: 'Fraunces', serif;
 font-weight: 300; font-style: italic;
-font-size: clamp(26px, 4vw, 36px);
+font-size: clamp(24px, 4vw, 34px);
 letter-spacing: -0.02em;
 line-height: 1;
 }
@@ -61,6 +63,7 @@ line-height: 1;
 font-style: normal; font-family: 'JetBrains Mono', monospace;
 font-size: 0.4em; letter-spacing: 0.3em; vertical-align: middle; color: var(--accent);
 }
+.header-right { display: flex; gap: 8px; align-items: center; }
 .icon-btn {
 background: transparent;
 border: 1px solid var(--line);
@@ -72,6 +75,43 @@ display: flex; align-items: center; justify-content: center;
 transition: all 0.2s;
 }
 .icon-btn:hover { background: var(--ink); color: var(--paper); }
+
+/* user switcher bar */
+.user-bar {
+background: var(--paper-warm);
+border: 1px solid var(--line);
+border-radius: 4px;
+padding: 12px 16px;
+margin-bottom: 24px;
+display: flex; align-items: center; gap: 12px;
+flex-wrap: wrap;
+}
+.user-bar .label {
+font-family: 'JetBrains Mono', monospace;
+font-size: 10px; letter-spacing: 0.15em;
+color: var(--ink-soft); text-transform: uppercase;
+}
+.user-bar select {
+flex: 1;
+min-width: 180px;
+padding: 8px 12px;
+border: 1px solid var(--line);
+background: var(--paper);
+color: var(--ink);
+font-family: 'Inter Tight', sans-serif;
+font-size: 14px;
+border-radius: 2px;
+}
+.user-bar .current-name {
+font-family: 'Fraunces', serif;
+font-size: 18px;
+font-weight: 500;
+}
+.user-bar-empty {
+color: var(--rust);
+font-size: 13px;
+font-weight: 500;
+}
 
 .nav-tabs {
 display: flex; gap: 0;
@@ -101,7 +141,7 @@ white-space: nowrap;
 .hero h1 {
 font-family: 'Fraunces', serif;
 font-weight: 300;
-font-size: clamp(36px, 5vw, 60px);
+font-size: clamp(34px, 5vw, 56px);
 line-height: 1.05;
 letter-spacing: -0.025em;
 margin-bottom: 16px;
@@ -187,6 +227,10 @@ position: relative;
 .upload-zone:hover, .upload-zone.drag {
 background: rgba(82, 183, 136, 0.05);
 border-color: var(--accent-bright);
+}
+.upload-zone.disabled {
+opacity: 0.5;
+pointer-events: none;
 }
 .upload-icon {
 width: 56px; height: 56px;
@@ -308,6 +352,8 @@ border: 1px solid var(--ink);
 .btn-ghost:hover { background: var(--ink); color: var(--paper); }
 .btn-accent { background: var(--accent); }
 .btn-accent:hover { background: var(--accent-bright); }
+.btn-danger { background: var(--rust); }
+.btn-danger:hover { background: #a04e3a; }
 
 .guide-check {
 background: rgba(212, 165, 116, 0.15);
@@ -327,6 +373,16 @@ font-size: 15px; margin-bottom: 4px;
 }
 
 .results { display: none; margin-top: 36px; }
+
+/* print header (only visible when printing) */
+.print-header { display: none; }
+
+.results-actions {
+display: flex; gap: 10px;
+margin-bottom: 24px;
+flex-wrap: wrap;
+}
+
 .score-section {
 display: grid;
 grid-template-columns: 1fr 1.4fr;
@@ -693,6 +749,45 @@ font-style: italic;
 font-size: 22px;
 }
 
+/* user list */
+.user-list-item {
+background: var(--paper-warm);
+border: 1px solid var(--line);
+padding: 16px 20px;
+border-radius: 2px;
+margin-bottom: 10px;
+display: grid;
+grid-template-columns: 1fr auto auto;
+gap: 12px;
+align-items: center;
+}
+.user-list-item.active-user {
+border-color: var(--accent);
+background: linear-gradient(90deg, rgba(82,183,136,0.1) 0%, var(--paper-warm) 100%);
+}
+.user-list-item .name {
+font-family: 'Fraunces', serif;
+font-size: 18px;
+font-weight: 500;
+}
+.user-list-item .meta {
+font-family: 'JetBrains Mono', monospace;
+font-size: 11px;
+color: var(--ink-soft);
+margin-top: 2px;
+}
+.user-list-item .actions {
+display: flex; gap: 6px;
+}
+.user-list-item .actions button {
+background: transparent; border: 1px solid var(--line);
+padding: 5px 10px; border-radius: 2px;
+font-size: 11px; cursor: pointer;
+color: var(--ink);
+}
+.user-list-item .actions button:hover { background: var(--ink); color: var(--paper); }
+.user-list-item .actions .del:hover { background: var(--rust); color: var(--paper); border-color: var(--rust); }
+
 footer {
 margin-top: 60px;
 padding-top: 24px;
@@ -735,6 +830,54 @@ font-size: 22px; cursor: pointer;
 color: var(--ink-soft);
 margin-top: -4px;
 }
+
+/* PRINT STYLES — only show results section, hide everything else */
+@media print {
+body {
+background: white !important;
+background-image: none !important;
+color: black;
+}
+.grain, .nav-tabs, .user-bar, header, footer,
+.review-section, .results-actions, .review-warning,
+#newMeasureBtn, .icon-btn { display: none !important; }
+.container { padding: 0; max-width: 100%; }
+.view { display: none !important; }
+.view#view-measure { display: block !important; }
+.hero, .setup-card, .stage, #guideBox, #errorBox { display: none !important; }
+.results { display: block !important; margin-top: 0; }
+.print-header {
+display: block !important;
+padding-bottom: 16px;
+margin-bottom: 16px;
+border-bottom: 2px solid #1a2332;
+}
+.print-header h1 {
+font-family: 'Fraunces', serif;
+font-weight: 400;
+font-size: 28px;
+margin-bottom: 8px;
+}
+.print-header .meta {
+font-family: 'JetBrains Mono', monospace;
+font-size: 12px;
+color: #555;
+display: grid;
+grid-template-columns: 1fr 1fr;
+gap: 8px;
+}
+.score-section, .risk-section, .advice-section {
+page-break-inside: avoid;
+padding: 16px 0;
+}
+.advice-card { page-break-inside: avoid; }
+.exercise-link { color: #2d6a4f !important; text-decoration: underline; }
+.exercise-link::after {
+content: " (" attr(href) ")";
+font-size: 9px;
+color: #888;
+}
+}
 </style>
 </head>
 <body>
@@ -743,8 +886,17 @@ margin-top: -4px;
 <div class="container">
 <header>
 <div class="logo">Gait<span>·</span><em class="lab">LAB</em></div>
-<button class="icon-btn" id="profileBtn" title="プロフィール">⚙</button>
+<div class="header-right">
+<button class="icon-btn" id="profileBtn" title="設定">⚙</button>
+</div>
 </header>
+
+<!-- user switcher bar -->
+<div class="user-bar" id="userBar">
+<span class="label">利用者</span>
+<select id="userSelect"></select>
+<button class="btn btn-ghost" id="manageUsersBtn" style="padding: 7px 14px; font-size: 12px;">利用者管理</button>
+</div>
 
 <nav class="nav-tabs">
 <button class="nav-tab active" data-view="measure">測定</button>
@@ -752,12 +904,13 @@ margin-top: -4px;
 <button class="nav-tab" data-view="compare">比較</button>
 <button class="nav-tab" data-view="goal">目標</button>
 <button class="nav-tab" data-view="badges">バッジ</button>
+<button class="nav-tab" data-view="users">利用者</button>
 </nav>
 
 <section class="view active" id="view-measure">
 <div class="hero">
-<h1>あなたの歩き方を、<em>定量化する。</em></h1>
-<p>横または前から撮った10〜20秒の動画をアップロードしてください。3回撮影することで精度が上がります。動画はサーバーに送信されません。</p>
+<h1>歩き方を、<em>定量化する。</em></h1>
+<p>横または前から撮った10〜20秒の動画をアップロードしてください。動画はサーバーに送信されません。</p>
 </div>
 
 <div class="setup-card">
@@ -773,8 +926,8 @@ margin-top: -4px;
 <div class="field">
 <label>撮影回数</label>
 <select id="takeCount">
-<option value="1">1回（簡易）</option>
-<option value="3" selected>3回（推奨・平均化）</option>
+<option value="1" selected>1回（簡易）</option>
+<option value="3">3回（推奨・平均化）</option>
 </select>
 </div>
 </div>
@@ -821,6 +974,21 @@ margin-top: -4px;
 <div id="errorBox"></div>
 
 <section class="results" id="resultsView">
+<!-- print-only header -->
+<div class="print-header">
+<h1 id="printName">—</h1>
+<div class="meta">
+<span id="printDate">—</span>
+<span id="printProfile">—</span>
+</div>
+</div>
+
+<!-- screen action buttons -->
+<div class="results-actions">
+<button class="btn btn-accent" id="printBtn">📄 結果を印刷 / PDF保存</button>
+<button class="btn btn-ghost" id="newMeasureBtn">新しい測定</button>
+</div>
+
 <div class="score-section">
 <div class="score-display">
 <div class="score-circle">
@@ -872,16 +1040,12 @@ stroke-dasharray="615.75" stroke-dashoffset="615.75" />
 <h2>向上させるための、<em>具体的な処方箋。</em></h2>
 <div class="advice-list" id="adviceList"></div>
 </div>
-
-<div style="text-align: center; padding: 24px 0;">
-<button class="btn btn-accent" id="newMeasureBtn">新しい測定を開始</button>
-</div>
 </section>
 </section>
 
 <section class="view" id="view-history">
 <div class="hero">
-<h1>あなたの<em>軌跡。</em></h1>
+<h1>歩行の<em>軌跡。</em></h1>
 <p>過去の測定結果から、歩行スコアの推移を可視化します。</p>
 </div>
 <div id="historyContent"></div>
@@ -924,33 +1088,97 @@ stroke-dasharray="615.75" stroke-dashoffset="615.75" />
 <div class="badges-grid" id="badgesGrid"></div>
 </section>
 
-<footer>
-<span>GAIT LAB / OPEN SOURCE</span>
-<span><em>walk well, live well.</em></span>
-</footer>
+<!-- users management view -->
+<section class="view" id="view-users">
+<div class="hero">
+<h1>利用者<em>管理。</em></h1>
+<p>リハビリ施設の利用者ごとに測定データを個別管理できます。利用者を追加・編集・削除できます。</p>
 </div>
-
-<div class="modal-bg" id="profileModal">
-<div class="modal">
-<button class="modal-close" id="profileCloseBtn">×</button>
-<h3>プロフィール設定</h3>
-<p style="font-size: 13px; color: var(--ink-soft); margin-bottom: 16px;">年齢・性別を設定すると、同年代との比較が表示されます。すべて端末内に保存され、外部に送信されません。</p>
+<div class="setup-card">
+<h3>新しい利用者を追加</h3>
 <div class="setup-row">
 <div class="field">
-<label>年齢</label>
-<input type="number" id="profileAge" min="10" max="100" placeholder="未設定" />
+<label>名前 / ID</label>
+<input type="text" id="newUserName" placeholder="例: 田中 太郎" />
 </div>
 <div class="field">
+<label>年齢</label>
+<input type="number" id="newUserAge" min="10" max="120" placeholder="任意" />
+</div>
+</div>
+<div class="setup-row">
+<div class="field">
 <label>性別</label>
-<select id="profileGender">
+<select id="newUserGender">
 <option value="">未設定</option>
 <option value="m">男性</option>
 <option value="f">女性</option>
 <option value="o">その他</option>
 </select>
 </div>
+<div class="field">
+<label>備考（任意）</label>
+<input type="text" id="newUserNote" placeholder="例: 右膝OA" />
 </div>
-<button class="btn btn-accent" id="profileSaveBtn" style="margin-top: 16px;">保存</button>
+</div>
+<button class="btn btn-accent" id="addUserBtn">追加</button>
+</div>
+<div id="usersList"></div>
+</section>
+
+<footer>
+<span>GAIT LAB / リハビリ支援版</span>
+<span><em>walk well, live well.</em></span>
+</footer>
+</div>
+
+<!-- profile modal: app-wide settings -->
+<div class="modal-bg" id="profileModal">
+<div class="modal">
+<button class="modal-close" id="profileCloseBtn">×</button>
+<h3>アプリ設定</h3>
+<p style="font-size: 13px; color: var(--ink-soft); margin-bottom: 16px;">利用者ごとのデータは「利用者管理」タブで設定します。すべてのデータは端末内に保存され、外部に送信されません。</p>
+<div style="border-top: 1px solid var(--line); padding-top: 14px; margin-top: 14px;">
+<p style="font-size: 13px; color: var(--ink-soft); margin-bottom: 10px;">全データの管理:</p>
+<button class="btn btn-ghost" id="exportDataBtn" style="margin-right: 8px;">データをエクスポート</button>
+<button class="btn btn-ghost" id="importDataBtn">データをインポート</button>
+<input type="file" id="importFileInput" accept=".json" style="display:none;" />
+</div>
+</div>
+</div>
+
+<!-- edit user modal -->
+<div class="modal-bg" id="editUserModal">
+<div class="modal">
+<button class="modal-close" id="editUserCloseBtn">×</button>
+<h3>利用者情報を編集</h3>
+<input type="hidden" id="editUserId" />
+<div class="setup-row">
+<div class="field">
+<label>名前 / ID</label>
+<input type="text" id="editUserName" />
+</div>
+<div class="field">
+<label>年齢</label>
+<input type="number" id="editUserAge" min="10" max="120" />
+</div>
+</div>
+<div class="setup-row">
+<div class="field">
+<label>性別</label>
+<select id="editUserGender">
+<option value="">未設定</option>
+<option value="m">男性</option>
+<option value="f">女性</option>
+<option value="o">その他</option>
+</select>
+</div>
+<div class="field">
+<label>備考</label>
+<input type="text" id="editUserNote" />
+</div>
+</div>
+<button class="btn btn-accent" id="editUserSaveBtn" style="margin-top: 16px;">保存</button>
 </div>
 </div>
 
@@ -960,11 +1188,10 @@ import { PoseLandmarker, FilesetResolver, DrawingUtils } from
 
 const $ = (id) => document.getElementById(id);
 
+// ============== Storage (now per-user) ==============
 const STORAGE = {
-history: 'gaitlab.history',
-goal: 'gaitlab.goal',
-profile: 'gaitlab.profile',
-badges: 'gaitlab.badges'
+users: 'gaitlab.users',
+currentUser: 'gaitlab.currentUser'
 };
 function load(key, def) {
 try { return JSON.parse(localStorage.getItem(key)) || def; }
@@ -972,22 +1199,239 @@ catch { return def; }
 }
 function saveLS(key, val) { localStorage.setItem(key, JSON.stringify(val)); }
 
-// tabs
-document.querySelectorAll('.nav-tab').forEach(btn => {
-btn.addEventListener('click', () => {
-const view = btn.dataset.view;
+// User data structure: { id, name, age, gender, note, history: [], goal: null, badges: [] }
+function getUsers() { return load(STORAGE.users, []); }
+function saveUsers(users) { saveLS(STORAGE.users, users); }
+function getCurrentUserId() { return load(STORAGE.currentUser, null); }
+function setCurrentUserId(id) { saveLS(STORAGE.currentUser, id); }
+
+function getCurrentUser() {
+const users = getUsers();
+const id = getCurrentUserId();
+return users.find(u => u.id === id) || null;
+}
+function updateCurrentUser(updateFn) {
+const users = getUsers();
+const id = getCurrentUserId();
+const idx = users.findIndex(u => u.id === id);
+if (idx === -1) return;
+updateFn(users[idx]);
+saveUsers(users);
+}
+
+function refreshUserBar() {
+const users = getUsers();
+const sel = $('userSelect');
+const currentId = getCurrentUserId();
+
+if (users.length === 0) {
+sel.innerHTML = '<option value="">利用者を追加してください</option>';
+sel.disabled = true;
+$('uploadZone').classList.add('disabled');
+return;
+}
+
+sel.disabled = false;
+$('uploadZone').classList.remove('disabled');
+sel.innerHTML = users.map(u =>
+`<option value="${u.id}" ${u.id === currentId ? 'selected' : ''}>${escapeHtml(u.name)}</option>`
+).join('');
+
+// ensure currentUser is valid
+if (!users.find(u => u.id === currentId)) {
+setCurrentUserId(users[0].id);
+sel.value = users[0].id;
+}
+}
+
+function escapeHtml(s) {
+return String(s || '').replace(/[&<>"']/g, c =>
+({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+$('userSelect').addEventListener('change', (e) => {
+setCurrentUserId(e.target.value);
+// refresh active view
+const activeView = document.querySelector('.nav-tab.active').dataset.view;
+switchView(activeView);
+});
+
+$('manageUsersBtn').addEventListener('click', () => switchView('users'));
+
+// ============== View switcher ==============
+function switchView(view) {
 document.querySelectorAll('.nav-tab').forEach(b => b.classList.remove('active'));
 document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-btn.classList.add('active');
+const tab = document.querySelector(`.nav-tab[data-view="${view}"]`);
+if (tab) tab.classList.add('active');
 $('view-' + view).classList.add('active');
 if (view === 'history') renderHistory();
 if (view === 'compare') renderCompare();
 if (view === 'goal') renderGoal();
 if (view === 'badges') renderBadges();
-});
+if (view === 'users') renderUsers();
+}
+
+document.querySelectorAll('.nav-tab').forEach(btn => {
+btn.addEventListener('click', () => switchView(btn.dataset.view));
 });
 
-// pain map
+// ============== User management ==============
+function uid() { return 'u' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+
+$('addUserBtn').addEventListener('click', () => {
+const name = $('newUserName').value.trim();
+if (!name) { alert('名前を入力してください'); return; }
+const users = getUsers();
+const newUser = {
+id: uid(),
+name,
+age: parseInt($('newUserAge').value) || null,
+gender: $('newUserGender').value || null,
+note: $('newUserNote').value.trim() || '',
+createdAt: Date.now(),
+history: [],
+goal: null,
+badges: []
+};
+users.push(newUser);
+saveUsers(users);
+if (!getCurrentUserId() || users.length === 1) setCurrentUserId(newUser.id);
+$('newUserName').value = '';
+$('newUserAge').value = '';
+$('newUserGender').value = '';
+$('newUserNote').value = '';
+refreshUserBar();
+renderUsers();
+});
+
+function renderUsers() {
+const users = getUsers();
+const list = $('usersList');
+const currentId = getCurrentUserId();
+if (users.length === 0) {
+list.innerHTML = '<div class="history-empty"><p>まだ利用者が登録されていません。</p><p style="font-size:13px;">上のフォームから追加してください。</p></div>';
+return;
+}
+list.innerHTML = '<h3 style="font-family:Fraunces,serif;font-weight:300;font-size:24px;margin:24px 0 14px;">登録された利用者（' + users.length + '名）</h3>' +
+users.map(u => `
+<div class="user-list-item ${u.id === currentId ? 'active-user' : ''}">
+<div>
+<div class="name">${escapeHtml(u.name)} ${u.id === currentId ? '<span style="font-family:JetBrains Mono,monospace;font-size:10px;color:var(--accent);letter-spacing:0.1em;margin-left:8px;">● 選択中</span>' : ''}</div>
+<div class="meta">
+${u.age ? u.age + '歳' : '年齢未設定'} ·
+${u.gender === 'm' ? '男性' : u.gender === 'f' ? '女性' : u.gender === 'o' ? 'その他' : '性別未設定'} ·
+測定 ${u.history.length} 回
+${u.note ? ' · ' + escapeHtml(u.note) : ''}
+</div>
+</div>
+<div class="actions">
+${u.id !== currentId ? `<button data-act="select" data-id="${u.id}">選択</button>` : ''}
+<button data-act="edit" data-id="${u.id}">編集</button>
+<button data-act="del" data-id="${u.id}" class="del">削除</button>
+</div>
+</div>
+`).join('');
+
+list.querySelectorAll('button[data-act]').forEach(b => {
+b.addEventListener('click', () => {
+const id = b.dataset.id;
+const act = b.dataset.act;
+if (act === 'select') {
+setCurrentUserId(id);
+refreshUserBar();
+renderUsers();
+} else if (act === 'edit') {
+const u = getUsers().find(x => x.id === id);
+if (!u) return;
+$('editUserId').value = u.id;
+$('editUserName').value = u.name;
+$('editUserAge').value = u.age || '';
+$('editUserGender').value = u.gender || '';
+$('editUserNote').value = u.note || '';
+$('editUserModal').classList.add('active');
+} else if (act === 'del') {
+const u = getUsers().find(x => x.id === id);
+if (!u) return;
+if (!confirm(`利用者「${u.name}」と全測定データ（${u.history.length}件）を削除します。\nこの操作は取り消せません。よろしいですか？`)) return;
+const remaining = getUsers().filter(x => x.id !== id);
+saveUsers(remaining);
+if (getCurrentUserId() === id) {
+setCurrentUserId(remaining[0]?.id || null);
+}
+refreshUserBar();
+renderUsers();
+}
+});
+});
+}
+
+$('editUserCloseBtn').addEventListener('click', () => $('editUserModal').classList.remove('active'));
+$('editUserModal').addEventListener('click', (e) => {
+if (e.target.id === 'editUserModal') $('editUserModal').classList.remove('active');
+});
+$('editUserSaveBtn').addEventListener('click', () => {
+const id = $('editUserId').value;
+const users = getUsers();
+const u = users.find(x => x.id === id);
+if (!u) return;
+u.name = $('editUserName').value.trim() || u.name;
+u.age = parseInt($('editUserAge').value) || null;
+u.gender = $('editUserGender').value || null;
+u.note = $('editUserNote').value.trim() || '';
+saveUsers(users);
+$('editUserModal').classList.remove('active');
+refreshUserBar();
+renderUsers();
+});
+
+// ============== Profile modal (app-wide) ==============
+$('profileBtn').addEventListener('click', () => $('profileModal').classList.add('active'));
+$('profileCloseBtn').addEventListener('click', () => $('profileModal').classList.remove('active'));
+$('profileModal').addEventListener('click', (e) => {
+if (e.target.id === 'profileModal') $('profileModal').classList.remove('active');
+});
+
+// export / import data
+$('exportDataBtn').addEventListener('click', () => {
+const data = {
+version: 3,
+exportedAt: new Date().toISOString(),
+users: getUsers()
+};
+const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+const url = URL.createObjectURL(blob);
+const a = document.createElement('a');
+a.href = url;
+a.download = `gaitlab-backup-${new Date().toISOString().split('T')[0]}.json`;
+a.click();
+URL.revokeObjectURL(url);
+});
+$('importDataBtn').addEventListener('click', () => $('importFileInput').click());
+$('importFileInput').addEventListener('change', (e) => {
+const file = e.target.files[0];
+if (!file) return;
+const reader = new FileReader();
+reader.onload = () => {
+try {
+const data = JSON.parse(reader.result);
+if (!data.users || !Array.isArray(data.users)) throw new Error('不正なファイル');
+if (!confirm(`${data.users.length}名の利用者データをインポートします。\n既存のデータと統合されます（ID重複時は新データで上書き）。続行しますか？`)) return;
+const existing = getUsers();
+const map = new Map(existing.map(u => [u.id, u]));
+data.users.forEach(u => map.set(u.id, u));
+saveUsers(Array.from(map.values()));
+refreshUserBar();
+alert('インポートが完了しました');
+$('profileModal').classList.remove('active');
+} catch (err) {
+alert('インポートに失敗しました: ' + err.message);
+}
+};
+reader.readAsText(file);
+});
+
+// ============== Pain map ==============
 let selectedPains = new Set();
 document.querySelectorAll('.pain-chip').forEach(chip => {
 chip.addEventListener('click', () => {
@@ -1009,29 +1453,10 @@ chip.classList.add('active');
 });
 });
 
-// profile
-$('profileBtn').addEventListener('click', () => {
-const p = load(STORAGE.profile, {});
-$('profileAge').value = p.age || '';
-$('profileGender').value = p.gender || '';
-$('profileModal').classList.add('active');
-});
-$('profileCloseBtn').addEventListener('click', () => $('profileModal').classList.remove('active'));
-$('profileModal').addEventListener('click', (e) => {
-if (e.target.id === 'profileModal') $('profileModal').classList.remove('active');
-});
-$('profileSaveBtn').addEventListener('click', () => {
-saveLS(STORAGE.profile, {
-age: parseInt($('profileAge').value) || null,
-gender: $('profileGender').value || null
-});
-$('profileModal').classList.remove('active');
-});
-
-// multi-take
+// ============== Multi-take ==============
 let takeResults = [];
 let currentTake = 0;
-let totalTakes = 3;
+let totalTakes = 1;
 
 function updateTakesIndicator() {
 const ind = $('takesIndicator');
@@ -1053,6 +1478,7 @@ takeResults = [];
 updateTakesIndicator();
 });
 
+// ============== Pose model ==============
 let poseLandmarker = null;
 let drawingUtils = null;
 
@@ -1074,12 +1500,24 @@ drawingUtils = new DrawingUtils($('canvas').getContext('2d'));
 $('statusText').textContent = 'モデル準備完了';
 }
 
-$('uploadZone').addEventListener('click', () => $('fileInput').click());
+// ============== Upload handlers ==============
+$('uploadZone').addEventListener('click', () => {
+if (!getCurrentUser()) {
+alert('先に「利用者管理」から利用者を追加・選択してください');
+switchView('users');
+return;
+}
+$('fileInput').click();
+});
 $('uploadZone').addEventListener('dragover', (e) => { e.preventDefault(); $('uploadZone').classList.add('drag'); });
 $('uploadZone').addEventListener('dragleave', () => $('uploadZone').classList.remove('drag'));
 $('uploadZone').addEventListener('drop', (e) => {
 e.preventDefault();
 $('uploadZone').classList.remove('drag');
+if (!getCurrentUser()) {
+alert('先に「利用者管理」から利用者を追加・選択してください');
+return;
+}
 if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
 });
 $('fileInput').addEventListener('change', (e) => {
@@ -1087,6 +1525,7 @@ if (e.target.files[0]) handleFile(e.target.files[0]);
 });
 $('resetBtn').addEventListener('click', () => location.reload());
 $('newMeasureBtn').addEventListener('click', () => location.reload());
+$('printBtn').addEventListener('click', () => window.print());
 
 function showError(msg) {
 $('errorBox').innerHTML = `<div class="error-msg">${msg}</div>`;
@@ -1352,8 +1791,8 @@ takes: results.length
 }
 
 function calculateFallRisk(result) {
-const profile = load(STORAGE.profile, {});
-const age = profile.age || 40;
+const u = getCurrentUser();
+const age = u?.age || 40;
 
 let risk = 0;
 const symmetry = result.metrics.find(m => m.key === 'symmetry').score;
@@ -1388,9 +1827,9 @@ return { risk: Math.round(risk), level, desc, cls };
 }
 
 function ageComparisonText(score) {
-const profile = load(STORAGE.profile, {});
-if (!profile.age) return '';
-const age = profile.age;
+const u = getCurrentUser();
+if (!u || !u.age) return '';
+const age = u.age;
 let avgScore;
 if (age < 30) avgScore = 82;
 else if (age < 50) avgScore = 76;
@@ -1475,6 +1914,17 @@ function showResults(result) {
 $('analysisView').style.display = 'none';
 $('resultsView').style.display = 'block';
 $('resultsView').scrollIntoView({ behavior: 'smooth' });
+
+// print header
+const u = getCurrentUser();
+$('printName').textContent = u ? u.name : '—';
+$('printDate').textContent = '測定日: ' + new Date(result.timestamp).toLocaleString('ja-JP');
+const meta = [];
+if (u?.age) meta.push(u.age + '歳');
+if (u?.gender === 'm') meta.push('男性');
+else if (u?.gender === 'f') meta.push('女性');
+if (u?.note) meta.push(u.note);
+$('printProfile').textContent = meta.join(' · ') || '—';
 
 const ring = $('scoreRing');
 const circumference = 2 * Math.PI * 98;
@@ -1606,9 +2056,10 @@ drawFrame(parseInt(slider.value));
 drawFrame(0);
 }
 
+// ============== Per-user history ==============
 function saveToHistory(result) {
-const history = load(STORAGE.history, []);
-history.push({
+updateCurrentUser(u => {
+u.history.push({
 id: Date.now(),
 timestamp: result.timestamp,
 overall: result.overall,
@@ -1617,17 +2068,22 @@ cadence: result.cadence,
 viewpoint: result.viewpoint,
 pains: result.pains
 });
-if (history.length > 100) history.shift();
-saveLS(STORAGE.history, history);
+if (u.history.length > 200) u.history.shift();
+});
 }
 
 function renderHistory() {
-const history = load(STORAGE.history, []);
+const u = getCurrentUser();
 const c = $('historyContent');
+if (!u) {
+c.innerHTML = '<div class="history-empty"><p>利用者が選択されていません。</p><p style="font-size:13px;">「利用者管理」タブから追加してください。</p></div>';
+return;
+}
+const history = u.history || [];
 if (history.length === 0) {
 c.innerHTML = `
 <div class="history-empty">
-<p>まだ測定データがありません。</p>
+<p>${escapeHtml(u.name)} さんの測定データはまだありません。</p>
 <p style="font-size: 13px;">「測定」タブから歩行解析を始めましょう。</p>
 </div>`;
 return;
@@ -1640,6 +2096,9 @@ const avg = Math.round(mean(history.map(h => h.overall)));
 const delta = previous ? latest.overall - previous.overall : 0;
 
 c.innerHTML = `
+<div style="font-family:'Fraunces',serif;font-size:20px;margin-bottom:16px;color:var(--ink-soft);">
+<span style="font-style:italic;">利用者:</span> ${escapeHtml(u.name)}
+</div>
 <div class="history-stat">
 <div class="stat-card">
 <div class="label">最新スコア</div>
@@ -1684,8 +2143,9 @@ c.querySelectorAll('button[data-act="del"]').forEach(b => {
 b.addEventListener('click', () => {
 if (!confirm('この記録を削除しますか？')) return;
 const id = parseInt(b.dataset.id);
-const h = load(STORAGE.history, []).filter(x => x.id !== id);
-saveLS(STORAGE.history, h);
+updateCurrentUser(u => {
+u.history = u.history.filter(x => x.id !== id);
+});
 renderHistory();
 });
 });
@@ -1745,12 +2205,17 @@ ctx.fill();
 }
 
 function renderCompare() {
-const history = load(STORAGE.history, []);
+const u = getCurrentUser();
 const c = $('compareContent');
+if (!u) {
+c.innerHTML = '<div class="history-empty"><p>利用者が選択されていません。</p></div>';
+return;
+}
+const history = u.history || [];
 if (history.length < 2) {
 c.innerHTML = `
 <div class="history-empty">
-<p>比較には2回以上の測定が必要です。</p>
+<p>${escapeHtml(u.name)} さんの比較には2回以上の測定が必要です。</p>
 <p style="font-size: 13px;">現在の記録: ${history.length} 件</p>
 </div>`;
 return;
@@ -1761,6 +2226,9 @@ const opts = history.map((h, i) =>
 ).join('');
 
 c.innerHTML = `
+<div style="font-family:'Fraunces',serif;font-size:20px;margin-bottom:16px;color:var(--ink-soft);">
+<span style="font-style:italic;">利用者:</span> ${escapeHtml(u.name)}
+</div>
 <div class="setup-card" style="margin-bottom: 20px;">
 <div class="setup-row">
 <div class="field">
@@ -1829,9 +2297,14 @@ renderCmp();
 }
 
 function renderGoal() {
-const goal = load(STORAGE.goal, null);
-const history = load(STORAGE.history, []);
+const u = getCurrentUser();
 const display = $('goalDisplay');
+if (!u) {
+display.innerHTML = '<div class="history-empty"><p>利用者が選択されていません。</p></div>';
+return;
+}
+const goal = u.goal;
+const history = u.history || [];
 
 if (goal) {
 $('goalScore').value = goal.score;
@@ -1844,6 +2317,9 @@ $('goalDate').value = future.toISOString().split('T')[0];
 
 if (!goal) {
 display.innerHTML = `
+<div style="font-family:'Fraunces',serif;font-size:18px;margin-bottom:14px;color:var(--ink-soft);">
+利用者: ${escapeHtml(u.name)}
+</div>
 <div class="history-empty">
 <p>まだ目標が設定されていません。</p>
 <p style="font-size: 13px;">上のフォームから目標を設定しましょう。</p>
@@ -1859,6 +2335,9 @@ const progress = totalGain > 0 ? Math.min(100, Math.max(0, (currentGain / totalG
 const daysLeft = Math.ceil((new Date(goal.date) - new Date()) / (1000 * 60 * 60 * 24));
 
 display.innerHTML = `
+<div style="font-family:'Fraunces',serif;font-size:18px;margin-bottom:14px;color:var(--ink-soft);">
+利用者: ${escapeHtml(u.name)}
+</div>
 <div class="goal-display">
 <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;">
 <span style="font-family:'Fraunces',serif;font-size:18px;">目標: ${goal.score} 点</span>
@@ -1879,13 +2358,14 @@ daysLeft <= 0 ? '期限を過ぎました。新しい目標を設定しましょ
 }
 
 $('saveGoalBtn').addEventListener('click', () => {
+if (!getCurrentUser()) { alert('先に利用者を選択してください'); return; }
 const score = parseInt($('goalScore').value);
 const date = $('goalDate').value;
 if (!score || !date) {
 alert('スコアと日付を入力してください');
 return;
 }
-saveLS(STORAGE.goal, { score, date });
+updateCurrentUser(u => { u.goal = { score, date }; });
 renderGoal();
 });
 
@@ -1915,8 +2395,10 @@ return max >= days;
 }
 
 function checkAndAwardBadges() {
-const history = load(STORAGE.history, []);
-const earned = load(STORAGE.badges, []);
+const u = getCurrentUser();
+if (!u) return;
+const history = u.history || [];
+const earned = u.badges || [];
 const newlyEarned = [];
 for (const b of BADGES) {
 if (!earned.includes(b.id) && b.check(history)) {
@@ -1924,7 +2406,7 @@ earned.push(b.id);
 newlyEarned.push(b);
 }
 }
-saveLS(STORAGE.badges, earned);
+updateCurrentUser(uu => { uu.badges = earned; });
 if (newlyEarned.length > 0) {
 setTimeout(() => {
 alert('🎉 新しいバッジを獲得しました!\n' + newlyEarned.map(b => `${b.icon} ${b.name}`).join('\n'));
@@ -1933,8 +2415,17 @@ alert('🎉 新しいバッジを獲得しました!\n' + newlyEarned.map(b => `
 }
 
 function renderBadges() {
-const earned = load(STORAGE.badges, []);
-$('badgesGrid').innerHTML = BADGES.map(b => `
+const u = getCurrentUser();
+const grid = $('badgesGrid');
+if (!u) {
+grid.innerHTML = '<div class="history-empty" style="grid-column: 1 / -1;"><p>利用者が選択されていません。</p></div>';
+return;
+}
+const earned = u.badges || [];
+grid.innerHTML = `
+<div style="grid-column: 1 / -1; font-family:'Fraunces',serif;font-size:18px;margin-bottom:8px;color:var(--ink-soft);">
+利用者: ${escapeHtml(u.name)} （${earned.length} / ${BADGES.length}）
+</div>` + BADGES.map(b => `
 <div class="badge ${earned.includes(b.id) ? 'earned' : ''}">
 <div class="badge-icon">${b.icon}</div>
 <div class="badge-name">${b.name}</div>
@@ -1943,7 +2434,10 @@ $('badgesGrid').innerHTML = BADGES.map(b => `
 `).join('');
 }
 
+// ============== Init ==============
+refreshUserBar();
 updateTakesIndicator();
+totalTakes = parseInt($('takeCount').value);
 </script>
 </body>
 </html>
