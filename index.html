@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+!DOCTYPE html>
 <html lang="ja">
 <head>
 <meta charset="UTF-8" />
@@ -40,71 +40,144 @@ background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='ht
 .container {
 max-width: 1080px;
 margin: 0 auto;
-padding: 32px 24px 80px;
+padding: 24px 20px 80px;
 position: relative; z-index: 2;
 }
 header {
 display: flex; justify-content: space-between; align-items: flex-start;
-padding-bottom: 24px;
+padding-bottom: 20px;
 border-bottom: 1px solid var(--line);
-margin-bottom: 40px;
+margin-bottom: 28px;
 }
 .logo {
 font-family: 'Fraunces', serif;
 font-weight: 300; font-style: italic;
-font-size: clamp(28px, 4vw, 38px);
+font-size: clamp(26px, 4vw, 36px);
 letter-spacing: -0.02em;
 line-height: 1;
 }
-.logo span {
-font-style: normal; font-weight: 500;
-color: var(--accent);
+.logo span { font-style: normal; font-weight: 500; color: var(--accent); }
+.logo .lab {
+font-style: normal; font-family: 'JetBrains Mono', monospace;
+font-size: 0.4em; letter-spacing: 0.3em; vertical-align: middle; color: var(--accent);
 }
-.meta {
-font-family: 'JetBrains Mono', monospace;
-font-size: 11px;
-text-align: right;
-color: var(--ink-soft);
-letter-spacing: 0.05em;
-}
-.meta strong {
-display: block;
-font-weight: 500;
+.icon-btn {
+background: transparent;
+border: 1px solid var(--line);
 color: var(--ink);
-font-size: 12px;
+width: 38px; height: 38px;
+border-radius: 50%;
+cursor: pointer; font-size: 16px;
+display: flex; align-items: center; justify-content: center;
+transition: all 0.2s;
 }
-.hero {
-margin-bottom: 48px;
-max-width: 700px;
+.icon-btn:hover { background: var(--ink); color: var(--paper); }
+
+.nav-tabs {
+display: flex; gap: 0;
+margin-bottom: 32px;
+border-bottom: 1px solid var(--line);
+overflow-x: auto;
+-webkit-overflow-scrolling: touch;
 }
+.nav-tab {
+background: none; border: none;
+padding: 12px 18px;
+font-family: 'Inter Tight', sans-serif;
+font-size: 14px; font-weight: 500;
+color: var(--ink-soft);
+cursor: pointer;
+border-bottom: 2px solid transparent;
+transition: all 0.2s;
+white-space: nowrap;
+}
+.nav-tab.active { color: var(--ink); border-bottom-color: var(--accent); }
+.nav-tab:hover { color: var(--ink); }
+
+.view { display: none; }
+.view.active { display: block; }
+
+.hero { margin-bottom: 36px; max-width: 700px; }
 .hero h1 {
 font-family: 'Fraunces', serif;
 font-weight: 300;
-font-size: clamp(40px, 6vw, 68px);
+font-size: clamp(36px, 5vw, 60px);
 line-height: 1.05;
 letter-spacing: -0.025em;
-margin-bottom: 20px;
+margin-bottom: 16px;
 }
-.hero h1 em {
-font-style: italic;
-color: var(--accent);
+.hero h1 em { font-style: italic; color: var(--accent); }
+.hero p { font-size: 16px; color: var(--ink-soft); max-width: 540px; }
+
+.setup-card {
+background: var(--paper-warm);
+border: 1px solid var(--line);
+border-radius: 4px;
+padding: 24px;
+margin-bottom: 24px;
 }
-.hero p {
-font-size: 17px;
+.setup-card h3 {
+font-family: 'Fraunces', serif;
+font-weight: 400; font-size: 20px;
+margin-bottom: 16px;
+}
+.setup-row {
+display: grid;
+grid-template-columns: 1fr 1fr;
+gap: 12px;
+margin-bottom: 14px;
+}
+@media (max-width: 600px) { .setup-row { grid-template-columns: 1fr; } }
+.field label {
+display: block;
+font-family: 'JetBrains Mono', monospace;
+font-size: 10px;
+letter-spacing: 0.1em;
 color: var(--ink-soft);
-max-width: 540px;
+margin-bottom: 6px;
+text-transform: uppercase;
 }
-/* upload card */
+.field select, .field input {
+width: 100%;
+padding: 10px 12px;
+border: 1px solid var(--line);
+background: var(--paper);
+color: var(--ink);
+font-family: 'Inter Tight', sans-serif;
+font-size: 14px;
+border-radius: 2px;
+}
+.pain-map {
+display: grid;
+grid-template-columns: repeat(4, 1fr);
+gap: 8px;
+margin-top: 6px;
+}
+.pain-chip {
+background: var(--paper);
+border: 1px solid var(--line);
+padding: 8px 10px;
+border-radius: 2px;
+font-size: 13px;
+cursor: pointer;
+text-align: center;
+transition: all 0.2s;
+}
+.pain-chip.active {
+background: var(--rust);
+color: var(--paper);
+border-color: var(--rust);
+}
+
 .stage {
 background: var(--paper-warm);
 border: 1px solid var(--line);
 border-radius: 4px;
-padding: 0;
 overflow: hidden;
 box-shadow: 0 1px 0 rgba(255, 255, 255, 0.6) inset, 0 20px 40px -30px rgba(26, 35, 50, 0.3);
 }
 .upload-zone {
-padding: 60px 40px;
+padding: 50px 30px;
 text-align: center;
 border: 2px dashed transparent;
 transition: all 0.3s ease;
@@ -117,7 +190,7 @@ border-color: var(--accent-bright);
 }
 .upload-icon {
 width: 56px; height: 56px;
-margin: 0 auto 20px;
+margin: 0 auto 16px;
 border: 1.5px solid var(--ink);
 border-radius: 50%;
 display: flex; align-items: center; justify-content: center;
@@ -128,25 +201,44 @@ transition: transform 0.4s ease;
 }
 .upload-zone:hover .upload-icon { transform: rotate(0deg) scale(1.05); }
 .upload-zone h3 {
-font-family: 'Fraunces', serif;
-font-weight: 400;
-font-size: 22px;
-margin-bottom: 6px;
+font-family: 'Fraunces', serif; font-weight: 400;
+font-size: 22px; margin-bottom: 6px;
 }
-.upload-zone p {
-color: var(--ink-soft);
-font-size: 14px;
-}
+.upload-zone p { color: var(--ink-soft); font-size: 14px; }
 .upload-zone .specs {
-margin-top: 20px;
+margin-top: 16px;
 font-family: 'JetBrains Mono', monospace;
-font-size: 10px;
-letter-spacing: 0.1em;
-color: var(--ink-soft);
-text-transform: uppercase;
+font-size: 10px; letter-spacing: 0.1em;
+color: var(--ink-soft); text-transform: uppercase;
 }
 #fileInput { display: none; }
-/* analysis stage */
+
+.takes-indicator {
+display: flex; gap: 8px; justify-content: center;
+margin-top: 16px;
+}
+.take-dot {
+width: 28px; height: 28px;
+border-radius: 50%;
+border: 1.5px solid var(--ink);
+display: flex; align-items: center; justify-content: center;
+font-family: 'JetBrains Mono', monospace;
+font-size: 11px;
+font-weight: 500;
+background: transparent;
+color: var(--ink);
+transition: all 0.3s;
+}
+.take-dot.done {
+background: var(--accent);
+border-color: var(--accent);
+color: var(--paper);
+}
+.take-dot.current {
+border-color: var(--accent-bright);
+background: var(--paper);
+}
+
 .analysis { display: none; }
 .video-frame {
 background: #0d1419;
@@ -168,10 +260,8 @@ font-size: 10px;
 color: rgba(255,255,255,0.85);
 letter-spacing: 0.15em;
 background: rgba(0,0,0,0.4);
-padding: 5px 10px;
-border-radius: 2px;
-z-index: 10;
-text-transform: uppercase;
+padding: 5px 10px; border-radius: 2px;
+z-index: 10; text-transform: uppercase;
 }
 .frame-label .dot {
 display: inline-block; width: 6px; height: 6px;
@@ -183,7 +273,6 @@ animation: pulse 1.5s ease-in-out infinite;
 .progress-bar {
 height: 3px;
 background: rgba(26, 35, 50, 0.1);
-overflow: hidden;
 }
 .progress-bar > div {
 height: 100%;
@@ -193,65 +282,74 @@ transition: width 0.2s ease;
 }
 .toolbar {
 display: flex; justify-content: space-between; align-items: center;
-padding: 16px 24px;
+padding: 14px 20px;
 border-top: 1px solid var(--line);
 font-family: 'JetBrains Mono', monospace;
 font-size: 11px;
 color: var(--ink-soft);
+flex-wrap: wrap; gap: 8px;
 }
 .btn {
 background: var(--ink);
 color: var(--paper);
 border: none;
-padding: 10px 20px;
+padding: 10px 18px;
 font-family: 'Inter Tight', sans-serif;
 font-size: 13px; font-weight: 500;
-letter-spacing: 0.02em;
 cursor: pointer;
 border-radius: 2px;
-transition: all 0.2s ease;
+transition: all 0.2s;
 }
 .btn:hover { background: var(--accent); }
 .btn-ghost {
-background: transparent;
-color: var(--ink);
+background: transparent; color: var(--ink);
 border: 1px solid var(--ink);
 }
 .btn-ghost:hover { background: var(--ink); color: var(--paper); }
-/* results */
-.results { display: none; margin-top: 48px; }
+.btn-accent { background: var(--accent); }
+.btn-accent:hover { background: var(--accent-bright); }
+
+.guide-check {
+background: rgba(212, 165, 116, 0.15);
+border-left: 3px solid var(--gold);
+padding: 14px 18px;
+margin: 16px 0;
+font-size: 14px;
+border-radius: 2px;
+}
+.guide-check.success {
+background: rgba(82, 183, 136, 0.1);
+border-color: var(--accent-bright);
+}
+.guide-check h4 {
+font-family: 'Fraunces', serif; font-weight: 500;
+font-size: 15px; margin-bottom: 4px;
+}
+
+.results { display: none; margin-top: 36px; }
 .score-section {
 display: grid;
 grid-template-columns: 1fr 1.4fr;
-gap: 60px;
-padding: 48px 0;
+gap: 50px;
+padding: 36px 0;
 border-bottom: 1px solid var(--line);
 align-items: center;
 }
 @media (max-width: 720px) {
-.score-section { grid-template-columns: 1fr; gap: 32px; padding: 32px 0; }
+.score-section { grid-template-columns: 1fr; gap: 28px; padding: 28px 0; }
 }
-.score-display {
-text-align: center;
-position: relative;
-}
+.score-display { text-align: center; position: relative; }
 .score-circle {
 position: relative;
-width: 240px; height: 240px;
+width: 220px; height: 220px;
 margin: 0 auto;
 }
-.score-circle svg {
-transform: rotate(-90deg);
-}
+.score-circle svg { transform: rotate(-90deg); }
 .score-circle .bg-ring {
-fill: none;
-stroke: rgba(26, 35, 50, 0.08);
-stroke-width: 6;
+fill: none; stroke: rgba(26, 35, 50, 0.08); stroke-width: 6;
 }
 .score-circle .fg-ring {
-fill: none;
-stroke: var(--accent);
-stroke-width: 6;
+fill: none; stroke: var(--accent); stroke-width: 6;
 stroke-linecap: round;
 transition: stroke-dashoffset 1.8s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -260,132 +358,166 @@ position: absolute; inset: 0;
 display: flex; flex-direction: column; align-items: center; justify-content: center;
 }
 .score-number .num {
-font-family: 'Fraunces', serif;
-font-weight: 300;
-font-size: 90px;
-line-height: 1;
+font-family: 'Fraunces', serif; font-weight: 300;
+font-size: 84px; line-height: 1;
 letter-spacing: -0.04em;
 }
 .score-number .max {
 font-family: 'JetBrains Mono', monospace;
-font-size: 11px;
-color: var(--ink-soft);
-letter-spacing: 0.15em;
-margin-top: 4px;
+font-size: 11px; color: var(--ink-soft);
+letter-spacing: 0.15em; margin-top: 4px;
 }
 .score-grade {
-margin-top: 18px;
-font-family: 'Fraunces', serif;
-font-style: italic;
+margin-top: 14px;
+font-family: 'Fraunces', serif; font-style: italic;
 font-size: 22px;
 }
+.age-comparison {
+margin-top: 8px;
+font-family: 'JetBrains Mono', monospace;
+font-size: 11px;
+color: var(--accent);
+letter-spacing: 0.05em;
+}
 .breakdown h2 {
-font-family: 'Fraunces', serif;
-font-weight: 300;
-font-size: 28px;
-letter-spacing: -0.02em;
-margin-bottom: 24px;
+font-family: 'Fraunces', serif; font-weight: 300;
+font-size: 26px; letter-spacing: -0.02em;
+margin-bottom: 20px;
 }
 .metric {
 display: grid;
 grid-template-columns: 1fr auto;
 gap: 16px;
-padding: 14px 0;
+padding: 12px 0;
 border-bottom: 1px solid var(--line);
 align-items: center;
 }
 .metric:last-child { border-bottom: none; }
-.metric-name {
-font-size: 14px;
-font-weight: 500;
-}
+.metric-name { font-size: 14px; font-weight: 500; }
 .metric-name span {
 display: block;
 font-family: 'JetBrains Mono', monospace;
-font-size: 10px;
-color: var(--ink-soft);
-font-weight: 400;
-letter-spacing: 0.05em;
-margin-top: 3px;
-text-transform: uppercase;
+font-size: 10px; color: var(--ink-soft);
+font-weight: 400; letter-spacing: 0.05em;
+margin-top: 3px; text-transform: uppercase;
 }
 .metric-bar {
-width: 140px;
-height: 4px;
+width: 130px; height: 4px;
 background: rgba(26, 35, 50, 0.08);
-position: relative;
-border-radius: 2px;
+position: relative; border-radius: 2px;
 overflow: hidden;
 }
 .metric-bar > div {
-height: 100%;
-background: var(--accent);
+height: 100%; background: var(--accent);
 width: 0%;
 transition: width 1.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .metric-score {
 font-family: 'JetBrains Mono', monospace;
-font-size: 13px;
-font-weight: 500;
-min-width: 36px;
-text-align: right;
+font-size: 13px; font-weight: 500;
+min-width: 36px; text-align: right;
 }
-/* advice */
-.advice-section {
-padding: 48px 0;
+
+.risk-section { padding: 28px 0; border-bottom: 1px solid var(--line); }
+.risk-card {
+background: var(--paper-warm);
+border-left: 3px solid var(--accent);
+padding: 18px 22px;
+border-radius: 2px;
 }
+.risk-card.warning { border-left-color: var(--gold); }
+.risk-card.danger { border-left-color: var(--rust); }
+.risk-label {
+font-family: 'JetBrains Mono', monospace;
+font-size: 10px; letter-spacing: 0.2em;
+text-transform: uppercase;
+color: var(--ink-soft);
+margin-bottom: 4px;
+}
+.risk-level {
+font-family: 'Fraunces', serif;
+font-size: 22px; margin-bottom: 8px;
+}
+.risk-desc { font-size: 14px; color: var(--ink-soft); }
+
+.advice-section { padding: 36px 0; border-bottom: 1px solid var(--line); }
 .advice-section .label {
 font-family: 'JetBrains Mono', monospace;
-font-size: 10px;
-letter-spacing: 0.2em;
-color: var(--accent);
-text-transform: uppercase;
-margin-bottom: 12px;
+font-size: 10px; letter-spacing: 0.2em;
+color: var(--accent); text-transform: uppercase;
+margin-bottom: 10px;
 }
 .advice-section h2 {
-font-family: 'Fraunces', serif;
-font-weight: 300;
-font-size: 36px;
-letter-spacing: -0.02em;
-margin-bottom: 32px;
-max-width: 600px;
+font-family: 'Fraunces', serif; font-weight: 300;
+font-size: 32px; letter-spacing: -0.02em;
+margin-bottom: 28px; max-width: 600px;
 line-height: 1.15;
 }
-.advice-section h2 em {
-font-style: italic; color: var(--accent);
-}
-.advice-list {
-display: grid;
-gap: 0;
-}
+.advice-section h2 em { font-style: italic; color: var(--accent); }
 .advice-card {
-padding: 24px 0;
+padding: 22px 0;
 border-top: 1px solid var(--line);
 display: grid;
 grid-template-columns: 60px 1fr;
-gap: 20px;
+gap: 16px;
 }
 .advice-card:last-child { border-bottom: 1px solid var(--line); }
 .advice-num {
-font-family: 'Fraunces', serif;
-font-weight: 300;
-font-style: italic;
-font-size: 32px;
-color: var(--accent);
-line-height: 1;
+font-family: 'Fraunces', serif; font-weight: 300;
+font-style: italic; font-size: 30px;
+color: var(--accent); line-height: 1;
 }
 .advice-content h4 {
-font-family: 'Fraunces', serif;
-font-weight: 500;
-font-size: 19px;
-margin-bottom: 6px;
+font-family: 'Fraunces', serif; font-weight: 500;
+font-size: 18px; margin-bottom: 6px;
 }
 .advice-content p {
-color: var(--ink-soft);
-font-size: 14.5px;
-line-height: 1.6;
+color: var(--ink-soft); font-size: 14.5px;
+line-height: 1.6; margin-bottom: 8px;
 }
-/* error */
+.exercise-link {
+display: inline-block;
+font-family: 'JetBrains Mono', monospace;
+font-size: 11px;
+color: var(--accent);
+text-decoration: none;
+letter-spacing: 0.05em;
+border-bottom: 1px solid var(--accent);
+padding-bottom: 1px;
+}
+
+.review-section { padding: 28px 0; border-bottom: 1px solid var(--line); }
+.review-section h2 {
+font-family: 'Fraunces', serif; font-weight: 300;
+font-size: 26px; margin-bottom: 16px;
+}
+.review-frame-wrap {
+background: #0d1419;
+aspect-ratio: 16/9;
+position: relative;
+border-radius: 2px;
+overflow: hidden;
+}
+#reviewCanvas {
+width: 100%; height: 100%;
+object-fit: contain;
+}
+.review-controls {
+display: flex; gap: 10px; align-items: center;
+margin-top: 14px; flex-wrap: wrap;
+}
+.review-controls input[type="range"] { flex: 1; min-width: 200px; }
+.review-warning {
+position: absolute; bottom: 10px; left: 10px; right: 10px;
+background: rgba(193, 101, 76, 0.85);
+color: #fff;
+padding: 8px 12px;
+font-size: 13px;
+border-radius: 2px;
+display: none;
+}
+.review-warning.active { display: block; }
+
 .error-msg {
 background: rgba(193, 101, 76, 0.1);
 border-left: 3px solid var(--rust);
@@ -395,27 +527,213 @@ font-size: 14px;
 color: var(--rust);
 border-radius: 2px;
 }
-/* loading */
-.loading-status {
+
+.history-empty {
 text-align: center;
-padding: 24px;
-font-family: 'JetBrains Mono', monospace;
-font-size: 12px;
+padding: 60px 20px;
 color: var(--ink-soft);
-letter-spacing: 0.1em;
 }
+.history-empty p { margin-bottom: 16px; font-size: 15px; }
+.history-stat {
+display: grid;
+grid-template-columns: repeat(3, 1fr);
+gap: 10px;
+margin-bottom: 28px;
+}
+@media (max-width: 600px) { .history-stat { grid-template-columns: 1fr; } }
+.stat-card {
+background: var(--paper-warm);
+border: 1px solid var(--line);
+padding: 18px;
+border-radius: 2px;
+}
+.stat-card .label {
+font-family: 'JetBrains Mono', monospace;
+font-size: 10px; letter-spacing: 0.15em;
+color: var(--ink-soft); text-transform: uppercase;
+margin-bottom: 6px;
+}
+.stat-card .value {
+font-family: 'Fraunces', serif; font-weight: 300;
+font-size: 36px; line-height: 1;
+}
+.stat-card .delta {
+font-family: 'JetBrains Mono', monospace;
+font-size: 11px; margin-top: 4px;
+}
+.stat-card .delta.up { color: var(--accent); }
+.stat-card .delta.down { color: var(--rust); }
+.chart-wrap {
+background: var(--paper-warm);
+border: 1px solid var(--line);
+border-radius: 2px;
+padding: 20px;
+margin-bottom: 24px;
+}
+.chart-wrap h3 {
+font-family: 'Fraunces', serif; font-weight: 400;
+font-size: 18px; margin-bottom: 12px;
+}
+#historyChart { width: 100%; height: 220px; }
+.history-list .history-item {
+padding: 14px 0;
+border-bottom: 1px solid var(--line);
+display: grid;
+grid-template-columns: 1fr auto auto;
+gap: 12px;
+align-items: center;
+}
+.hi-date {
+font-family: 'JetBrains Mono', monospace;
+font-size: 12px; color: var(--ink-soft);
+}
+.hi-score {
+font-family: 'Fraunces', serif;
+font-size: 22px; font-weight: 400;
+}
+.hi-actions { display: flex; gap: 8px; }
+.hi-actions button {
+background: transparent; border: 1px solid var(--line);
+padding: 5px 10px; border-radius: 2px;
+font-size: 12px; cursor: pointer;
+color: var(--ink);
+}
+.hi-actions button:hover { background: var(--ink); color: var(--paper); }
+
+.badges-grid {
+display: grid;
+grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+gap: 14px;
+}
+.badge {
+background: var(--paper-warm);
+border: 1px solid var(--line);
+padding: 16px 12px;
+border-radius: 2px;
+text-align: center;
+transition: all 0.3s;
+opacity: 0.4;
+}
+.badge.earned {
+opacity: 1;
+border-color: var(--accent);
+background: linear-gradient(180deg, rgba(82,183,136,0.1) 0%, var(--paper-warm) 100%);
+}
+.badge-icon { font-size: 28px; margin-bottom: 6px; }
+.badge-name {
+font-family: 'Fraunces', serif;
+font-size: 13px; font-weight: 500;
+margin-bottom: 4px;
+}
+.badge-desc {
+font-family: 'JetBrains Mono', monospace;
+font-size: 9px; color: var(--ink-soft);
+letter-spacing: 0.05em;
+}
+
+.goal-display {
+background: var(--paper-warm);
+border: 1px solid var(--line);
+padding: 20px;
+border-radius: 2px;
+}
+.goal-bar {
+height: 6px;
+background: rgba(26, 35, 50, 0.08);
+border-radius: 3px;
+margin: 12px 0 8px;
+overflow: hidden;
+}
+.goal-bar > div {
+height: 100%;
+background: var(--accent);
+width: 0%;
+transition: width 1s ease;
+}
+.goal-meta {
+display: flex; justify-content: space-between;
+font-family: 'JetBrains Mono', monospace;
+font-size: 11px; color: var(--ink-soft);
+}
+
+.compare-grid {
+display: grid;
+grid-template-columns: 1fr 1fr;
+gap: 16px;
+}
+@media (max-width: 600px) { .compare-grid { grid-template-columns: 1fr; } }
+.compare-side {
+background: var(--paper-warm);
+border: 1px solid var(--line);
+padding: 16px;
+border-radius: 2px;
+text-align: center;
+}
+.compare-side .label {
+font-family: 'JetBrains Mono', monospace;
+font-size: 10px; letter-spacing: 0.15em;
+color: var(--ink-soft); text-transform: uppercase;
+margin-bottom: 8px;
+}
+.compare-side .score {
+font-family: 'Fraunces', serif;
+font-size: 48px; font-weight: 300;
+line-height: 1;
+}
+.compare-side .date {
+font-family: 'JetBrains Mono', monospace;
+font-size: 11px; color: var(--ink-soft);
+margin-top: 4px;
+}
+.compare-arrow {
+text-align: center;
+margin: 16px 0;
+font-family: 'Fraunces', serif;
+font-style: italic;
+font-size: 22px;
+}
+
 footer {
-margin-top: 80px;
-padding-top: 32px;
+margin-top: 60px;
+padding-top: 24px;
 border-top: 1px solid var(--line);
 display: flex; justify-content: space-between;
 font-family: 'JetBrains Mono', monospace;
 font-size: 11px;
 color: var(--ink-soft);
 letter-spacing: 0.05em;
+flex-wrap: wrap; gap: 8px;
 }
 footer em {
 font-family: 'Fraunces', serif; font-style: italic; color: var(--ink);
+}
+
+.modal-bg {
+display: none;
+position: fixed; inset: 0;
+background: rgba(26, 35, 50, 0.5);
+z-index: 100;
+padding: 20px;
+overflow-y: auto;
+}
+.modal-bg.active { display: flex; align-items: flex-start; justify-content: center; padding-top: 40px; }
+.modal {
+background: var(--paper);
+border-radius: 4px;
+max-width: 480px; width: 100%;
+padding: 24px;
+border: 1px solid var(--line);
+}
+.modal h3 {
+font-family: 'Fraunces', serif; font-weight: 400;
+font-size: 22px; margin-bottom: 16px;
+}
+.modal-close {
+float: right;
+background: none; border: none;
+font-size: 22px; cursor: pointer;
+color: var(--ink-soft);
+margin-top: -4px;
 }
 </style>
 </head>
@@ -424,29 +742,67 @@ font-family: 'Fraunces', serif; font-style: italic; color: var(--ink);
 
 <div class="container">
 <header>
-<div class="logo">Gait<span>·</span><em style="font-style:normal;font-family:'JetBrains Mono',monospace;font-size:0.4em;letter-spacing:0.3em;vertical-align:middle;color:var(--accent)">LAB</em></div>
-<div class="meta">
-<strong>v0.1 / browser-only</strong>
-MEDIAPIPE · CLIENT-SIDE · 2026
-</div>
+<div class="logo">Gait<span>·</span><em class="lab">LAB</em></div>
+<button class="icon-btn" id="profileBtn" title="プロフィール">⚙</button>
 </header>
 
-<section class="hero">
+<nav class="nav-tabs">
+<button class="nav-tab active" data-view="measure">測定</button>
+<button class="nav-tab" data-view="history">履歴</button>
+<button class="nav-tab" data-view="compare">比較</button>
+<button class="nav-tab" data-view="goal">目標</button>
+<button class="nav-tab" data-view="badges">バッジ</button>
+</nav>
+
+<section class="view active" id="view-measure">
+<div class="hero">
 <h1>あなたの歩き方を、<em>定量化する。</em></h1>
-<p>横から撮った15秒の動画をアップロードしてください。33個の身体ランドマークを追跡し、姿勢・対称性・リズムから100点満点で歩行を採点します。動画はサーバーに送信されません。すべてあなたの端末内で処理されます。</p>
-</section>
+<p>横または前から撮った10〜20秒の動画をアップロードしてください。3回撮影することで精度が上がります。動画はサーバーに送信されません。</p>
+</div>
+
+<div class="setup-card">
+<h3>測定設定</h3>
+<div class="setup-row">
+<div class="field">
+<label>視点</label>
+<select id="viewpoint">
+<option value="side">横から（推奨）</option>
+<option value="front">前から</option>
+</select>
+</div>
+<div class="field">
+<label>撮影回数</label>
+<select id="takeCount">
+<option value="1">1回（簡易）</option>
+<option value="3" selected>3回（推奨・平均化）</option>
+</select>
+</div>
+</div>
+<div class="field" style="margin-top: 8px;">
+<label>痛みのある部位（複数選択可）</label>
+<div class="pain-map">
+<div class="pain-chip" data-pain="neck">首</div>
+<div class="pain-chip" data-pain="back">腰</div>
+<div class="pain-chip" data-pain="hip">股関節</div>
+<div class="pain-chip" data-pain="knee_l">左膝</div>
+<div class="pain-chip" data-pain="knee_r">右膝</div>
+<div class="pain-chip" data-pain="ankle_l">左足首</div>
+<div class="pain-chip" data-pain="ankle_r">右足首</div>
+<div class="pain-chip" data-pain="none">なし</div>
+</div>
+</div>
+</div>
 
 <div class="stage">
-<!-- upload -->
 <div class="upload-zone" id="uploadZone">
 <div class="upload-icon">↑</div>
 <h3>動画をドロップ または タップして選択</h3>
-<p>横から撮影された歩行動画 / MP4・MOV・WebM</p>
-<div class="specs">推奨 10〜20秒 · 全身が映る · 横向き視点</div>
+<p>歩行動画 / MP4・MOV・WebM</p>
+<div class="specs">推奨 10〜20秒 · 全身が映る</div>
+<div class="takes-indicator" id="takesIndicator"></div>
 <input type="file" id="fileInput" accept="video/*" />
 </div>
 
-<!-- analysis -->
 <div class="analysis" id="analysisView">
 <div class="video-frame">
 <span class="frame-label" id="frameLabel"><span class="dot"></span>解析中</span>
@@ -461,17 +817,17 @@ MEDIAPIPE · CLIENT-SIDE · 2026
 </div>
 </div>
 
+<div id="guideBox"></div>
 <div id="errorBox"></div>
 
-<!-- results -->
 <section class="results" id="resultsView">
 <div class="score-section">
 <div class="score-display">
 <div class="score-circle">
-<svg width="240" height="240" viewBox="0 0 240 240">
-<circle class="bg-ring" cx="120" cy="120" r="108" />
-<circle class="fg-ring" id="scoreRing" cx="120" cy="120" r="108"
-stroke-dasharray="678.58" stroke-dashoffset="678.58" />
+<svg width="220" height="220" viewBox="0 0 220 220">
+<circle class="bg-ring" cx="110" cy="110" r="98" />
+<circle class="fg-ring" id="scoreRing" cx="110" cy="110" r="98"
+stroke-dasharray="615.75" stroke-dashoffset="615.75" />
 </svg>
 <div class="score-number">
 <div class="num" id="scoreNum">0</div>
@@ -479,6 +835,7 @@ stroke-dasharray="678.58" stroke-dashoffset="678.58" />
 </div>
 </div>
 <div class="score-grade" id="scoreGrade">—</div>
+<div class="age-comparison" id="ageCompare"></div>
 </div>
 
 <div class="breakdown">
@@ -487,11 +844,84 @@ stroke-dasharray="678.58" stroke-dashoffset="678.58" />
 </div>
 </div>
 
+<div class="risk-section">
+<div class="risk-card" id="riskCard">
+<div class="risk-label">— 転倒リスク評価</div>
+<div class="risk-level" id="riskLevel">—</div>
+<div class="risk-desc" id="riskDesc"></div>
+</div>
+</div>
+
+<div class="review-section">
+<h2>スロー再生 & 問題箇所</h2>
+<p style="color: var(--ink-soft); font-size: 14px; margin-bottom: 14px;">スライダーを動かすとフレームごとに歩行を確認できます。問題が検出されたフレームでは骨格が赤く表示され、警告が出ます。</p>
+<div class="review-frame-wrap">
+<canvas id="reviewCanvas"></canvas>
+<div class="review-warning" id="reviewWarning"></div>
+</div>
+<div class="review-controls">
+<button class="btn btn-ghost" id="reviewPrev">◀</button>
+<input type="range" id="reviewSlider" min="0" max="0" value="0" />
+<button class="btn btn-ghost" id="reviewNext">▶</button>
+<span id="reviewFrameLabel" style="font-family:'JetBrains Mono',monospace;font-size:11px;">0/0</span>
+</div>
+</div>
+
 <div class="advice-section">
 <div class="label">— RECOMMENDATIONS</div>
 <h2>向上させるための、<em>具体的な処方箋。</em></h2>
 <div class="advice-list" id="adviceList"></div>
 </div>
+
+<div style="text-align: center; padding: 24px 0;">
+<button class="btn btn-accent" id="newMeasureBtn">新しい測定を開始</button>
+</div>
+</section>
+</section>
+
+<section class="view" id="view-history">
+<div class="hero">
+<h1>あなたの<em>軌跡。</em></h1>
+<p>過去の測定結果から、歩行スコアの推移を可視化します。</p>
+</div>
+<div id="historyContent"></div>
+</section>
+
+<section class="view" id="view-compare">
+<div class="hero">
+<h1>ビフォー<em>＆</em>アフター。</h1>
+<p>2つの測定結果を並べて比較できます。</p>
+</div>
+<div id="compareContent"></div>
+</section>
+
+<section class="view" id="view-goal">
+<div class="hero">
+<h1>目標を<em>立てる。</em></h1>
+<p>達成したいスコアと期日を設定すると、進捗を可視化します。</p>
+</div>
+<div class="setup-card" style="margin-bottom: 20px;">
+<div class="setup-row">
+<div class="field">
+<label>目標スコア</label>
+<input type="number" id="goalScore" min="50" max="100" value="80" />
+</div>
+<div class="field">
+<label>達成予定日</label>
+<input type="date" id="goalDate" />
+</div>
+</div>
+<button class="btn btn-accent" id="saveGoalBtn">目標を保存</button>
+</div>
+<div id="goalDisplay"></div>
+</section>
+
+<section class="view" id="view-badges">
+<div class="hero">
+<h1>達成した<em>軌跡。</em></h1>
+<p>測定を続けて、バッジを集めていきましょう。</p>
+</div>
+<div class="badges-grid" id="badgesGrid"></div>
 </section>
 
 <footer>
@@ -500,30 +930,134 @@ stroke-dasharray="678.58" stroke-dashoffset="678.58" />
 </footer>
 </div>
 
+<div class="modal-bg" id="profileModal">
+<div class="modal">
+<button class="modal-close" id="profileCloseBtn">×</button>
+<h3>プロフィール設定</h3>
+<p style="font-size: 13px; color: var(--ink-soft); margin-bottom: 16px;">年齢・性別を設定すると、同年代との比較が表示されます。すべて端末内に保存され、外部に送信されません。</p>
+<div class="setup-row">
+<div class="field">
+<label>年齢</label>
+<input type="number" id="profileAge" min="10" max="100" placeholder="未設定" />
+</div>
+<div class="field">
+<label>性別</label>
+<select id="profileGender">
+<option value="">未設定</option>
+<option value="m">男性</option>
+<option value="f">女性</option>
+<option value="o">その他</option>
+</select>
+</div>
+</div>
+<button class="btn btn-accent" id="profileSaveBtn" style="margin-top: 16px;">保存</button>
+</div>
+</div>
+
 <script type="module">
 import { PoseLandmarker, FilesetResolver, DrawingUtils } from
 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs';
 
-// ---------- DOM ----------
 const $ = (id) => document.getElementById(id);
-const uploadZone = $('uploadZone');
-const fileInput = $('fileInput');
-const analysisView = $('analysisView');
-const resultsView = $('resultsView');
-const video = $('video');
-const canvas = $('canvas');
-const ctx = canvas.getContext('2d');
-const progressFill = $('progressFill');
-const statusText = $('statusText');
-const resetBtn = $('resetBtn');
-const errorBox = $('errorBox');
 
-// ---------- pose landmarker ----------
+const STORAGE = {
+history: 'gaitlab.history',
+goal: 'gaitlab.goal',
+profile: 'gaitlab.profile',
+badges: 'gaitlab.badges'
+};
+function load(key, def) {
+try { return JSON.parse(localStorage.getItem(key)) || def; }
+catch { return def; }
+}
+function saveLS(key, val) { localStorage.setItem(key, JSON.stringify(val)); }
+
+// tabs
+document.querySelectorAll('.nav-tab').forEach(btn => {
+btn.addEventListener('click', () => {
+const view = btn.dataset.view;
+document.querySelectorAll('.nav-tab').forEach(b => b.classList.remove('active'));
+document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+btn.classList.add('active');
+$('view-' + view).classList.add('active');
+if (view === 'history') renderHistory();
+if (view === 'compare') renderCompare();
+if (view === 'goal') renderGoal();
+if (view === 'badges') renderBadges();
+});
+});
+
+// pain map
+let selectedPains = new Set();
+document.querySelectorAll('.pain-chip').forEach(chip => {
+chip.addEventListener('click', () => {
+const pain = chip.dataset.pain;
+if (pain === 'none') {
+selectedPains.clear();
+document.querySelectorAll('.pain-chip').forEach(c => c.classList.remove('active'));
+chip.classList.add('active');
+} else {
+document.querySelector('[data-pain="none"]').classList.remove('active');
+if (selectedPains.has(pain)) {
+selectedPains.delete(pain);
+chip.classList.remove('active');
+} else {
+selectedPains.add(pain);
+chip.classList.add('active');
+}
+}
+});
+});
+
+// profile
+$('profileBtn').addEventListener('click', () => {
+const p = load(STORAGE.profile, {});
+$('profileAge').value = p.age || '';
+$('profileGender').value = p.gender || '';
+$('profileModal').classList.add('active');
+});
+$('profileCloseBtn').addEventListener('click', () => $('profileModal').classList.remove('active'));
+$('profileModal').addEventListener('click', (e) => {
+if (e.target.id === 'profileModal') $('profileModal').classList.remove('active');
+});
+$('profileSaveBtn').addEventListener('click', () => {
+saveLS(STORAGE.profile, {
+age: parseInt($('profileAge').value) || null,
+gender: $('profileGender').value || null
+});
+$('profileModal').classList.remove('active');
+});
+
+// multi-take
+let takeResults = [];
+let currentTake = 0;
+let totalTakes = 3;
+
+function updateTakesIndicator() {
+const ind = $('takesIndicator');
+if (totalTakes <= 1) { ind.innerHTML = ''; return; }
+let html = '';
+for (let i = 0; i < totalTakes; i++) {
+let cls = '';
+if (i < currentTake) cls = 'done';
+else if (i === currentTake) cls = 'current';
+html += `<div class="take-dot ${cls}">${i + 1}</div>`;
+}
+ind.innerHTML = html;
+}
+
+$('takeCount').addEventListener('change', (e) => {
+totalTakes = parseInt(e.target.value);
+currentTake = 0;
+takeResults = [];
+updateTakesIndicator();
+});
+
 let poseLandmarker = null;
 let drawingUtils = null;
 
 async function initPose() {
-statusText.textContent = 'モデル読み込み中...';
+$('statusText').textContent = 'モデル読み込み中...';
 const vision = await FilesetResolver.forVisionTasks(
 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm'
 );
@@ -536,36 +1070,47 @@ delegate: 'GPU'
 runningMode: 'VIDEO',
 numPoses: 1
 });
-drawingUtils = new DrawingUtils(ctx);
-statusText.textContent = 'モデル準備完了';
+drawingUtils = new DrawingUtils($('canvas').getContext('2d'));
+$('statusText').textContent = 'モデル準備完了';
 }
 
-// ---------- upload handlers ----------
-uploadZone.addEventListener('click', () => fileInput.click());
-uploadZone.addEventListener('dragover', (e) => { e.preventDefault(); uploadZone.classList.add('drag'); });
-uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag'));
-uploadZone.addEventListener('drop', (e) => {
+$('uploadZone').addEventListener('click', () => $('fileInput').click());
+$('uploadZone').addEventListener('dragover', (e) => { e.preventDefault(); $('uploadZone').classList.add('drag'); });
+$('uploadZone').addEventListener('dragleave', () => $('uploadZone').classList.remove('drag'));
+$('uploadZone').addEventListener('drop', (e) => {
 e.preventDefault();
-uploadZone.classList.remove('drag');
+$('uploadZone').classList.remove('drag');
 if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
 });
-fileInput.addEventListener('change', (e) => {
+$('fileInput').addEventListener('change', (e) => {
 if (e.target.files[0]) handleFile(e.target.files[0]);
 });
-resetBtn.addEventListener('click', () => location.reload());
+$('resetBtn').addEventListener('click', () => location.reload());
+$('newMeasureBtn').addEventListener('click', () => location.reload());
 
 function showError(msg) {
-errorBox.innerHTML = `<div class="error-msg">${msg}</div>`;
+$('errorBox').innerHTML = `<div class="error-msg">${msg}</div>`;
+}
+function showGuide(msg, success = false) {
+$('guideBox').innerHTML = `
+<div class="guide-check ${success ? 'success' : ''}">
+${msg}
+</div>`;
 }
 
+let currentFrames = [];
+let frames = [];
+
 async function handleFile(file) {
-errorBox.innerHTML = '';
+$('errorBox').innerHTML = '';
+$('guideBox').innerHTML = '';
 if (!file.type.startsWith('video/')) {
 showError('動画ファイルを選択してください');
 return;
 }
-uploadZone.style.display = 'none';
-analysisView.style.display = 'block';
+totalTakes = parseInt($('takeCount').value);
+$('uploadZone').style.display = 'none';
+$('analysisView').style.display = 'block';
 
 if (!poseLandmarker) {
 try { await initPose(); }
@@ -576,123 +1121,163 @@ return;
 }
 
 const url = URL.createObjectURL(file);
-video.src = url;
+$('video').src = url;
 await new Promise((res, rej) => {
-video.onloadedmetadata = res;
-video.onerror = () => rej(new Error('動画の読み込みに失敗'));
+$('video').onloadedmetadata = res;
+$('video').onerror = () => rej(new Error('動画の読み込みに失敗'));
 });
 
-// size canvas to video
-canvas.width = video.videoWidth;
-canvas.height = video.videoHeight;
+$('canvas').width = $('video').videoWidth;
+$('canvas').height = $('video').videoHeight;
 
 await analyzeVideo();
 }
 
-// ---------- frame-by-frame analysis ----------
-const frames = []; // {t, landmarks}
-
 async function analyzeVideo() {
-const duration = Math.min(video.duration, 30); // cap
-const fps = 12; // sample at 12fps for speed
+frames = [];
+const video = $('video');
+const ctx = $('canvas').getContext('2d');
+const duration = Math.min(video.duration, 30);
+const fps = 12;
 const totalFrames = Math.floor(duration * fps);
-let frameIdx = 0;
 
-statusText.textContent = `${totalFrames}フレームを解析します`;
+$('statusText').textContent = `${totalFrames}フレームを解析します`;
+
+const guideCheckResult = await runGuideCheck(video);
 
 for (let i = 0; i < totalFrames; i++) {
-const t = (i / fps);
+const t = i / fps;
 video.currentTime = t;
 await new Promise(res => video.onseeked = res);
 
 const result = poseLandmarker.detectForVideo(video, performance.now());
 
-// draw video frame on canvas
 ctx.save();
-ctx.clearRect(0, 0, canvas.width, canvas.height);
-ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+ctx.drawImage(video, 0, 0, ctx.canvas.width, ctx.canvas.height);
 if (result.landmarks && result.landmarks[0]) {
-// skeleton overlay
 drawingUtils.drawConnectors(result.landmarks[0], PoseLandmarker.POSE_CONNECTIONS,
 { color: '#52b788', lineWidth: 3 });
 drawingUtils.drawLandmarks(result.landmarks[0],
 { color: '#f4ede0', fillColor: '#2d6a4f', radius: 4, lineWidth: 1 });
-frames.push({ t, lm: result.landmarks[0] });
+frames.push({ t, lm: result.landmarks[0].map(p => ({ x: p.x, y: p.y, z: p.z })) });
 }
 ctx.restore();
 
-frameIdx++;
-progressFill.style.width = `${(frameIdx / totalFrames) * 100}%`;
-statusText.textContent = `フレーム ${frameIdx} / ${totalFrames}`;
+$('progressFill').style.width = `${((i + 1) / totalFrames) * 100}%`;
+$('statusText').textContent = `フレーム ${i + 1} / ${totalFrames}`;
 }
 
 if (frames.length < 5) {
-showError('身体を検出できませんでした。全身がはっきり映る横向きの動画でお試しください。');
+showError('身体を検出できませんでした。全身がはっきり映る動画でお試しください。');
+$('analysisView').style.display = 'none';
+$('uploadZone').style.display = 'block';
 return;
 }
 
-statusText.textContent = '採点中...';
-await new Promise(r => setTimeout(r, 400));
-
-const result = scoreGait(frames);
-showResults(result);
+if (!guideCheckResult.ok) {
+showGuide(`<h4>撮影品質の警告</h4>${guideCheckResult.message} 解析は続行しますが、精度が下がる可能性があります。`);
+} else {
+showGuide(`<h4>撮影品質: 良好</h4>${guideCheckResult.message}`, true);
 }
 
-// ---------- scoring ----------
-// MediaPipe Pose landmark indices
+$('statusText').textContent = '採点中...';
+await new Promise(r => setTimeout(r, 300));
+
+const viewpoint = $('viewpoint').value;
+const scoring = scoreGait(frames, viewpoint);
+
+takeResults.push({ scoring, frames: [...frames] });
+currentTake++;
+updateTakesIndicator();
+
+if (currentTake < totalTakes) {
+$('analysisView').style.display = 'none';
+$('uploadZone').style.display = 'block';
+$('uploadZone').querySelector('h3').textContent = `${currentTake + 1}回目の動画を選択`;
+showGuide(`<h4>${currentTake}回目の測定が完了しました</h4>残り ${totalTakes - currentTake} 回。続けてアップロードしてください。`, true);
+return;
+}
+
+currentFrames = takeResults[takeResults.length - 1].frames;
+const avgResult = averageResults(takeResults.map(r => r.scoring));
+showResults(avgResult);
+saveToHistory(avgResult);
+checkAndAwardBadges();
+}
+
+async function runGuideCheck(video) {
+const samples = [video.duration * 0.2, video.duration * 0.5, video.duration * 0.8];
+let detectedCount = 0;
+let lastLm = null;
+
+for (const t of samples) {
+video.currentTime = t;
+await new Promise(res => video.onseeked = res);
+const r = poseLandmarker.detectForVideo(video, performance.now());
+if (r.landmarks && r.landmarks[0]) {
+detectedCount++;
+lastLm = r.landmarks[0];
+}
+}
+
+if (detectedCount === 0) return { ok: false, message: '人物が検出できませんでした。明るい場所で全身を映してください。' };
+if (detectedCount < 2) return { ok: false, message: '人物の検出が不安定です。背景がシンプルな場所で再撮影をお勧めします。' };
+
+const nose = lastLm[0];
+const ankleY = (lastLm[27].y + lastLm[28].y) / 2;
+const headBottomCoverage = ankleY - nose.y;
+
+if (headBottomCoverage < 0.55) return { ok: false, message: '全身がフレームに収まっていない可能性があります。少し離れて撮影してください。' };
+if (nose.y < 0.05 || ankleY > 0.95) return { ok: false, message: '頭か足がフレーム端に近づいています。余白を持たせて撮影してください。' };
+
+return { ok: true, message: '全身がはっきり映っています。良い撮影です。' };
+}
+
 const L = {
 NOSE: 0, L_SHOULDER: 11, R_SHOULDER: 12,
 L_HIP: 23, R_HIP: 24,
 L_KNEE: 25, R_KNEE: 26,
-L_ANKLE: 27, R_ANKLE: 28,
-L_HEEL: 29, R_HEEL: 30, L_FOOT: 31, R_FOOT: 32
+L_ANKLE: 27, R_ANKLE: 28
 };
 
 function midpoint(a, b) { return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }; }
-function dist(a, b) { return Math.hypot(a.x - b.x, a.y - b.y); }
+function mean(a) { return a.reduce((s, v) => s + v, 0) / a.length; }
+function std(a) { const m = mean(a); return Math.sqrt(mean(a.map(v => (v - m) ** 2))); }
 
-function scoreGait(frames) {
-// 1. Posture verticality: vertical alignment of shoulders-hips-ankles
-const postureDevs = [];
-// 2. Head position: forward head (nose vs shoulder midpoint x)
-const headOffsets = [];
-// 3. Pelvic tilt: |left_hip.y - right_hip.y|
-const pelvicTilts = [];
-// 4. Step length symmetry: variance in stride distances per side
-const ankleDistances = [];
-// 5. Rhythm: consistency of stride (std / mean of cycle)
+function scoreGait(frames, viewpoint = 'side') {
+const postureDevs = [], headOffsets = [], pelvicTilts = [], ankleDistances = [];
+const problemFrames = { posture: [], head: [], pelvic: [] };
 
-for (const f of frames) {
+frames.forEach((f, idx) => {
 const lm = f.lm;
 const sh = midpoint(lm[L.L_SHOULDER], lm[L.R_SHOULDER]);
 const hp = midpoint(lm[L.L_HIP], lm[L.R_HIP]);
 const an = midpoint(lm[L.L_ANKLE], lm[L.R_ANKLE]);
 
-// posture: x deviation of sh-hp-an line from vertical, normalized by torso height
 const torso = Math.abs(sh.y - hp.y) || 0.001;
 const dev1 = Math.abs(sh.x - hp.x) / torso;
 const dev2 = Math.abs(hp.x - an.x) / torso;
-postureDevs.push((dev1 + dev2) / 2);
+const postureDev = (dev1 + dev2) / 2;
+postureDevs.push(postureDev);
+if (postureDev > 0.20) problemFrames.posture.push(idx);
 
-// head: nose forward of shoulders relative to torso height
-headOffsets.push(Math.abs(lm[L.NOSE].x - sh.x) / torso);
+const headOff = Math.abs(lm[L.NOSE].x - sh.x) / torso;
+headOffsets.push(headOff);
+if (headOff > 0.25) problemFrames.head.push(idx);
 
-// pelvic tilt
 const shoulderWidth = Math.abs(lm[L.L_SHOULDER].x - lm[L.R_SHOULDER].x) || 0.001;
-pelvicTilts.push(Math.abs(lm[L.L_HIP].y - lm[L.R_HIP].y) / shoulderWidth);
+const pelvic = Math.abs(lm[L.L_HIP].y - lm[L.R_HIP].y) / shoulderWidth;
+pelvicTilts.push(pelvic);
+if (pelvic > 0.18) problemFrames.pelvic.push(idx);
 
-// ankle x distance (for stride detection)
 ankleDistances.push(lm[L.L_ANKLE].x - lm[L.R_ANKLE].x);
-}
-
-const mean = a => a.reduce((s, v) => s + v, 0) / a.length;
-const std = a => { const m = mean(a); return Math.sqrt(mean(a.map(v => (v - m) ** 2))); };
+});
 
 const avgPosture = mean(postureDevs);
 const avgHead = mean(headOffsets);
 const avgPelvic = mean(pelvicTilts);
 
-// stride detection: count zero crossings of (L_ankle.x - R_ankle.x)
 const crossings = [];
 for (let i = 1; i < ankleDistances.length; i++) {
 if (Math.sign(ankleDistances[i]) !== Math.sign(ankleDistances[i - 1])) {
@@ -702,7 +1287,6 @@ crossings.push(frames[i].t);
 const cycles = [];
 for (let i = 1; i < crossings.length; i++) cycles.push(crossings[i] - crossings[i - 1]);
 
-// step symmetry: peak amplitudes alternating sides
 const peaks = [];
 for (let i = 1; i < ankleDistances.length - 1; i++) {
 const a = ankleDistances[i];
@@ -713,14 +1297,13 @@ peaks.push(Math.abs(a));
 }
 const symmetry = peaks.length > 1 ? std(peaks) / (mean(peaks) || 1) : 0.5;
 const rhythm = cycles.length > 1 ? std(cycles) / (mean(cycles) || 1) : 0.5;
+const cadence = cycles.length > 0 ? 60 / mean(cycles) * 2 : 0;
 
-// ---- map deviations to 0-100 scores ----
-// smaller is better — design tolerable thresholds
-const postureScore = clamp01_to_100(avgPosture, 0.05, 0.30);
-const headScore = clamp01_to_100(avgHead, 0.08, 0.35);
-const pelvicScore = clamp01_to_100(avgPelvic, 0.05, 0.25);
-const symmetryScore = clamp01_to_100(symmetry, 0.10, 0.50);
-const rhythmScore = clamp01_to_100(rhythm, 0.10, 0.45);
+const postureScore = clampScore(avgPosture, 0.05, 0.30);
+const headScore = clampScore(avgHead, 0.08, 0.35);
+const pelvicScore = clampScore(avgPelvic, 0.05, 0.25);
+const symmetryScore = clampScore(symmetry, 0.10, 0.50);
+const rhythmScore = clampScore(rhythm, 0.10, 0.45);
 
 const overall = Math.round(
 postureScore * 0.25 + headScore * 0.18 +
@@ -735,55 +1318,151 @@ metrics: [
 { key: 'pelvic', name: '骨盤の水平性', sub: 'PELVIC LEVEL', score: Math.round(pelvicScore), raw: avgPelvic },
 { key: 'symmetry', name: '左右対称性', sub: 'STEP SYMMETRY', score: Math.round(symmetryScore), raw: symmetry },
 { key: 'rhythm', name: 'リズムの安定性', sub: 'CADENCE STABILITY', score: Math.round(rhythmScore), raw: rhythm }
-]
+],
+cadence: Math.round(cadence),
+viewpoint,
+pains: Array.from(selectedPains),
+problemFrames,
+timestamp: Date.now()
 };
 }
 
-// good ≤ a => 100, bad ≥ b => 0, linear between
-function clamp01_to_100(v, good, bad) {
+function clampScore(v, good, bad) {
 if (v <= good) return 100;
-if (v >= bad) return 30; // floor at 30 so users get encouragement
+if (v >= bad) return 30;
 return 100 - ((v - good) / (bad - good)) * 70;
 }
 
-// ---------- advice generation ----------
+function averageResults(results) {
+if (results.length === 1) return results[0];
+return {
+overall: Math.round(mean(results.map(r => r.overall))),
+metrics: results[0].metrics.map((m, i) => ({
+...m,
+score: Math.round(mean(results.map(r => r.metrics[i].score))),
+raw: mean(results.map(r => r.metrics[i].raw))
+})),
+cadence: Math.round(mean(results.map(r => r.cadence))),
+viewpoint: results[0].viewpoint,
+pains: results[0].pains,
+problemFrames: results[results.length - 1].problemFrames,
+timestamp: Date.now(),
+takes: results.length
+};
+}
+
+function calculateFallRisk(result) {
+const profile = load(STORAGE.profile, {});
+const age = profile.age || 40;
+
+let risk = 0;
+const symmetry = result.metrics.find(m => m.key === 'symmetry').score;
+const rhythm = result.metrics.find(m => m.key === 'rhythm').score;
+const posture = result.metrics.find(m => m.key === 'posture').score;
+
+risk += (100 - symmetry) * 0.30;
+risk += (100 - rhythm) * 0.25;
+risk += (100 - posture) * 0.15;
+
+if (result.cadence < 90 && result.cadence > 0) risk += (90 - result.cadence) * 0.5;
+if (result.cadence > 130) risk += (result.cadence - 130) * 0.3;
+
+if (age >= 75) risk *= 1.5;
+else if (age >= 65) risk *= 1.3;
+
+risk = Math.min(100, Math.max(0, risk));
+
+let level, desc, cls;
+if (risk < 25) {
+level = '低リスク'; cls = '';
+desc = '歩行は安定しており、転倒リスクは低い状態です。現在の運動習慣を維持しましょう。';
+} else if (risk < 50) {
+level = '中リスク'; cls = 'warning';
+desc = '一部の歩行指標に改善の余地があります。バランス運動や下肢筋力トレーニングをお勧めします。';
+} else {
+level = '高リスク'; cls = 'danger';
+desc = '左右対称性やリズムに不安定さが見られます。専門家への相談、手すりの設置、滑りにくい靴の使用などをご検討ください。';
+}
+
+return { risk: Math.round(risk), level, desc, cls };
+}
+
+function ageComparisonText(score) {
+const profile = load(STORAGE.profile, {});
+if (!profile.age) return '';
+const age = profile.age;
+let avgScore;
+if (age < 30) avgScore = 82;
+else if (age < 50) avgScore = 76;
+else if (age < 65) avgScore = 70;
+else if (age < 75) avgScore = 64;
+else avgScore = 58;
+
+const diff = score - avgScore;
+const sign = diff >= 0 ? '+' : '';
+const ageGroup = age < 30 ? '20代' : age < 40 ? '30代' : age < 50 ? '40代' :
+age < 60 ? '50代' : age < 70 ? '60代' : age < 80 ? '70代' : '80代以上';
+return `${ageGroup}平均との差: ${sign}${diff} 点`;
+}
+
 const ADVICE_BANK = {
 posture: {
 title: '体幹をまっすぐに保つ',
-body: '頭頂部から1本の糸で吊り上げられているイメージを意識しましょう。立っている時にお腹を軽く引き締め、肋骨を骨盤の真上に乗せる感覚を1日数回練習すると、歩行中の前傾が改善します。'
+body: '頭頂部から1本の糸で吊り上げられているイメージを意識しましょう。立っている時にお腹を軽く引き締め、肋骨を骨盤の真上に乗せる感覚を1日数回練習すると、歩行中の前傾が改善します。',
+youtube: 'https://www.youtube.com/results?search_query=posture+correction+exercises'
 },
 head: {
 title: '視線を前方15メートル先へ',
-body: 'スマホ姿勢などで頭が前に出る「前方頭位」は重心を崩します。耳が肩の真上に来るよう、顎を軽く引いて視線を地面ではなく前方遠くに向けて歩いてみてください。'
+body: 'スマホ姿勢などで頭が前に出る「前方頭位」は重心を崩します。耳が肩の真上に来るよう、顎を軽く引いて視線を地面ではなく前方遠くに向けて歩いてみてください。',
+youtube: 'https://www.youtube.com/results?search_query=chin+tuck+exercise+forward+head+posture'
 },
 pelvic: {
 title: '中臀筋を強化する',
-body: '骨盤が左右に揺れているサインです。片足立ちを左右30秒ずつ、サイドプランクを20秒×3セット週3回行うと、立脚中の骨盤の安定性が高まります。'
+body: '骨盤が左右に揺れているサインです。片足立ちを左右30秒ずつ、サイドプランクを20秒×3セット週3回行うと、立脚中の骨盤の安定性が高まります。',
+youtube: 'https://www.youtube.com/results?search_query=gluteus+medius+strengthening+exercises'
 },
 symmetry: {
 title: '左右対称な歩幅を意識する',
-body: '片側の歩幅が大きい・小さい傾向があります。直線上を一定のリズムで歩く練習や、メトロノームに合わせたウォーキングが有効です。痛みがある場合は専門家にご相談ください。'
+body: '片側の歩幅が大きい・小さい傾向があります。直線上を一定のリズムで歩く練習や、メトロノームに合わせたウォーキングが有効です。痛みがある場合は専門家にご相談ください。',
+youtube: 'https://www.youtube.com/results?search_query=tandem+walking+exercise+gait'
 },
 rhythm: {
 title: 'リズムを一定に保つ',
-body: 'ケイデンス（歩調）にばらつきがあります。1分間100〜110歩を目安に、同じテンポで歩く練習をしてみましょう。スマホのメトロノームアプリを使うと効果的です。'
+body: 'ケイデンス（歩調）にばらつきがあります。1分間100〜110歩を目安に、同じテンポで歩く練習をしてみましょう。スマホのメトロノームアプリを使うと効果的です。',
+youtube: 'https://www.youtube.com/results?search_query=metronome+walking+cadence+training'
 }
 };
 
-function generateAdvice(metrics) {
-// sort metrics by lowest score, take top 3
-const sorted = [...metrics].sort((a, b) => a.score - b.score);
+const PAIN_ADVICE = {
+knee_l: { title: '左膝への負担を軽減', body: '左膝に痛みがある場合、無理に歩行を続けず、整形外科の受診をお勧めします。痛みのない範囲で大腿四頭筋（太もも前面）の強化が膝への衝撃を和らげます。', youtube: 'https://www.youtube.com/results?search_query=knee+pain+exercises' },
+knee_r: { title: '右膝への負担を軽減', body: '右膝に痛みがある場合、無理に歩行を続けず、整形外科の受診をお勧めします。痛みのない範囲で大腿四頭筋（太もも前面）の強化が膝への衝撃を和らげます。', youtube: 'https://www.youtube.com/results?search_query=knee+pain+exercises' },
+back: { title: '腰への配慮', body: '腰痛がある場合、体幹（コア）の強化と股関節周りのストレッチが有効です。痛みが強い時は安静にし、専門家に相談してください。', youtube: 'https://www.youtube.com/results?search_query=lower+back+pain+exercises' },
+hip: { title: '股関節モビリティの改善', body: '股関節の柔軟性と筋力が歩行を大きく左右します。股関節屈筋ストレッチと殿筋強化を日常に取り入れましょう。', youtube: 'https://www.youtube.com/results?search_query=hip+mobility+exercises' },
+ankle_l: { title: '左足首の安定性', body: '足首の不安定さは歩行全体に影響します。タオルギャザー、片足立ち、カーフレイズで足首周りを強化しましょう。', youtube: 'https://www.youtube.com/results?search_query=ankle+stability+exercises' },
+ankle_r: { title: '右足首の安定性', body: '足首の不安定さは歩行全体に影響します。タオルギャザー、片足立ち、カーフレイズで足首周りを強化しましょう。', youtube: 'https://www.youtube.com/results?search_query=ankle+stability+exercises' },
+neck: { title: '首・肩のストレッチ', body: '首の痛みは前方頭位や肩の緊張からも起こります。肩甲骨を寄せるストレッチと首の側屈・回旋を1日数回行いましょう。', youtube: 'https://www.youtube.com/results?search_query=neck+pain+stretches' }
+};
+
+function generateAdvice(result) {
+const sorted = [...result.metrics].sort((a, b) => a.score - b.score);
 const lowest = sorted.slice(0, 3).filter(m => m.score < 90);
-if (lowest.length === 0) {
-return [{
-title: '素晴らしい歩行です',
-body: '全項目で高いスコアを記録しています。現在の歩き方を維持するため、週3〜4回の30分ウォーキングと、軽いストレッチを継続することをお勧めします。'
-}];
+const advice = [];
+
+for (const pain of result.pains || []) {
+if (PAIN_ADVICE[pain]) advice.push(PAIN_ADVICE[pain]);
 }
-return lowest.map(m => ADVICE_BANK[m.key]);
+for (const m of lowest) advice.push(ADVICE_BANK[m.key]);
+
+if (advice.length === 0) {
+advice.push({
+title: '素晴らしい歩行です',
+body: '全項目で高いスコアを記録しています。現在の歩き方を維持するため、週3〜4回の30分ウォーキングと、軽いストレッチを継続することをお勧めします。',
+youtube: null
+});
+}
+return advice.slice(0, 5);
 }
 
-// ---------- render results ----------
 function gradeFor(score) {
 if (score >= 90) return '理想的';
 if (score >= 75) return '良好';
@@ -792,34 +1471,32 @@ if (score >= 45) return '改善の余地あり';
 return '注意が必要';
 }
 
-function showResults({ overall, metrics }) {
-analysisView.style.display = 'none';
-resultsView.style.display = 'block';
-resultsView.scrollIntoView({ behavior: 'smooth' });
+function showResults(result) {
+$('analysisView').style.display = 'none';
+$('resultsView').style.display = 'block';
+$('resultsView').scrollIntoView({ behavior: 'smooth' });
 
-// animate score
 const ring = $('scoreRing');
-const circumference = 2 * Math.PI * 108;
+const circumference = 2 * Math.PI * 98;
 ring.setAttribute('stroke-dasharray', circumference);
 setTimeout(() => {
-ring.style.strokeDashoffset = circumference - (circumference * overall / 100);
+ring.style.strokeDashoffset = circumference - (circumference * result.overall / 100);
 }, 200);
 
-// count up
 const numEl = $('scoreNum');
 let cur = 0;
-const step = Math.max(1, Math.ceil(overall / 40));
+const step = Math.max(1, Math.ceil(result.overall / 40));
 const timer = setInterval(() => {
 cur += step;
-if (cur >= overall) { cur = overall; clearInterval(timer); }
+if (cur >= result.overall) { cur = result.overall; clearInterval(timer); }
 numEl.textContent = cur;
 }, 40);
 
-$('scoreGrade').textContent = gradeFor(overall);
+$('scoreGrade').textContent = gradeFor(result.overall);
+$('ageCompare').textContent = ageComparisonText(result.overall);
 
-// metrics list
 const list = $('metricsList');
-list.innerHTML = metrics.map((m, i) => `
+list.innerHTML = result.metrics.map(m => `
 <div class="metric">
 <div class="metric-name">${m.name}<span>${m.sub}</span></div>
 <div style="display:flex;align-items:center;gap:14px;">
@@ -834,18 +1511,439 @@ el.style.width = el.dataset.score + '%';
 });
 }, 400);
 
-// advice
-const advice = generateAdvice(metrics);
+const risk = calculateFallRisk(result);
+$('riskCard').className = 'risk-card ' + risk.cls;
+$('riskLevel').textContent = `${risk.level} (${risk.risk}/100)`;
+$('riskDesc').textContent = risk.desc;
+
+const advice = generateAdvice(result);
 $('adviceList').innerHTML = advice.map((a, i) => `
 <div class="advice-card">
 <div class="advice-num">0${i + 1}</div>
 <div class="advice-content">
 <h4>${a.title}</h4>
 <p>${a.body}</p>
+${a.youtube ? `<a href="${a.youtube}" target="_blank" rel="noopener" class="exercise-link">→ おすすめエクササイズ動画を見る</a>` : ''}
 </div>
 </div>
 `).join('');
+
+setupReview(result);
 }
+
+function setupReview(result) {
+const slider = $('reviewSlider');
+const canvas = $('reviewCanvas');
+const ctx = canvas.getContext('2d');
+canvas.width = $('canvas').width;
+canvas.height = $('canvas').height;
+
+slider.max = currentFrames.length - 1;
+slider.value = 0;
+
+const allProblems = new Set();
+Object.values(result.problemFrames || {}).forEach(arr => arr.forEach(i => allProblems.add(i)));
+
+function drawFrame(idx) {
+const f = currentFrames[idx];
+if (!f) return;
+ctx.clearRect(0, 0, canvas.width, canvas.height);
+ctx.fillStyle = '#0d1419';
+ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+const isProblem = allProblems.has(idx);
+const color = isProblem ? '#c1654c' : '#52b788';
+const fillColor = isProblem ? '#fcd5ce' : '#f4ede0';
+
+const lm = f.lm;
+const w = canvas.width, h = canvas.height;
+const connections = [
+[11,12],[11,13],[13,15],[12,14],[14,16],
+[11,23],[12,24],[23,24],
+[23,25],[25,27],[24,26],[26,28]
+];
+
+ctx.strokeStyle = color;
+ctx.lineWidth = 3;
+connections.forEach(([a, b]) => {
+ctx.beginPath();
+ctx.moveTo(lm[a].x * w, lm[a].y * h);
+ctx.lineTo(lm[b].x * w, lm[b].y * h);
+ctx.stroke();
+});
+
+ctx.fillStyle = fillColor;
+[0, 11, 12, 23, 24, 25, 26, 27, 28].forEach(i => {
+ctx.beginPath();
+ctx.arc(lm[i].x * w, lm[i].y * h, 5, 0, Math.PI * 2);
+ctx.fill();
+});
+
+const wbox = $('reviewWarning');
+if (isProblem) {
+const issues = [];
+if (result.problemFrames.posture.includes(idx)) issues.push('体幹が傾いています');
+if (result.problemFrames.head.includes(idx)) issues.push('頭が前に出ています');
+if (result.problemFrames.pelvic.includes(idx)) issues.push('骨盤が傾いています');
+wbox.textContent = '⚠ ' + issues.join(' / ');
+wbox.classList.add('active');
+} else {
+wbox.classList.remove('active');
+}
+
+$('reviewFrameLabel').textContent = `${idx + 1} / ${currentFrames.length}`;
+}
+
+slider.addEventListener('input', () => drawFrame(parseInt(slider.value)));
+$('reviewPrev').addEventListener('click', () => {
+slider.value = Math.max(0, parseInt(slider.value) - 1);
+drawFrame(parseInt(slider.value));
+});
+$('reviewNext').addEventListener('click', () => {
+slider.value = Math.min(slider.max, parseInt(slider.value) + 1);
+drawFrame(parseInt(slider.value));
+});
+drawFrame(0);
+}
+
+function saveToHistory(result) {
+const history = load(STORAGE.history, []);
+history.push({
+id: Date.now(),
+timestamp: result.timestamp,
+overall: result.overall,
+metrics: result.metrics.map(m => ({ key: m.key, score: m.score })),
+cadence: result.cadence,
+viewpoint: result.viewpoint,
+pains: result.pains
+});
+if (history.length > 100) history.shift();
+saveLS(STORAGE.history, history);
+}
+
+function renderHistory() {
+const history = load(STORAGE.history, []);
+const c = $('historyContent');
+if (history.length === 0) {
+c.innerHTML = `
+<div class="history-empty">
+<p>まだ測定データがありません。</p>
+<p style="font-size: 13px;">「測定」タブから歩行解析を始めましょう。</p>
+</div>`;
+return;
+}
+
+const latest = history[history.length - 1];
+const previous = history.length > 1 ? history[history.length - 2] : null;
+const best = history.reduce((b, h) => h.overall > b.overall ? h : b);
+const avg = Math.round(mean(history.map(h => h.overall)));
+const delta = previous ? latest.overall - previous.overall : 0;
+
+c.innerHTML = `
+<div class="history-stat">
+<div class="stat-card">
+<div class="label">最新スコア</div>
+<div class="value">${latest.overall}</div>
+${previous ? `<div class="delta ${delta >= 0 ? 'up' : 'down'}">${delta >= 0 ? '+' : ''}${delta} 前回比</div>` : ''}
+</div>
+<div class="stat-card">
+<div class="label">最高スコア</div>
+<div class="value">${best.overall}</div>
+<div class="delta">${new Date(best.timestamp).toLocaleDateString('ja-JP')}</div>
+</div>
+<div class="stat-card">
+<div class="label">平均スコア</div>
+<div class="value">${avg}</div>
+<div class="delta">${history.length} 回の測定</div>
+</div>
+</div>
+<div class="chart-wrap">
+<h3>スコア推移</h3>
+<canvas id="historyChart"></canvas>
+</div>
+<div class="history-list">
+<h3 style="font-family:'Fraunces',serif;font-weight:300;font-size:22px;margin-bottom:12px;">測定記録</h3>
+${[...history].reverse().map(h => `
+<div class="history-item">
+<div>
+<div class="hi-date">${new Date(h.timestamp).toLocaleString('ja-JP', {year:'numeric',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})}</div>
+<div style="font-size:11px;color:var(--ink-soft);margin-top:2px;">ケイデンス: ${h.cadence || '—'} 歩/分</div>
+</div>
+<div class="hi-score">${h.overall}</div>
+<div class="hi-actions">
+<button data-id="${h.id}" data-act="del">削除</button>
+</div>
+</div>
+`).join('')}
+</div>
+`;
+
+drawHistoryChart(history);
+
+c.querySelectorAll('button[data-act="del"]').forEach(b => {
+b.addEventListener('click', () => {
+if (!confirm('この記録を削除しますか？')) return;
+const id = parseInt(b.dataset.id);
+const h = load(STORAGE.history, []).filter(x => x.id !== id);
+saveLS(STORAGE.history, h);
+renderHistory();
+});
+});
+}
+
+function drawHistoryChart(history) {
+const canvas = $('historyChart');
+if (!canvas) return;
+const dpr = window.devicePixelRatio || 1;
+const rect = canvas.getBoundingClientRect();
+canvas.width = rect.width * dpr;
+canvas.height = 220 * dpr;
+canvas.style.height = '220px';
+const ctx = canvas.getContext('2d');
+ctx.scale(dpr, dpr);
+
+const w = rect.width, h = 220;
+const padX = 36, padY = 22;
+ctx.clearRect(0, 0, w, h);
+
+const data = history.map(x => x.overall);
+const min = Math.max(0, Math.min(...data) - 10);
+const max = Math.min(100, Math.max(...data) + 10);
+
+ctx.strokeStyle = 'rgba(26,35,50,0.08)';
+ctx.lineWidth = 1;
+for (let i = 0; i <= 4; i++) {
+const y = padY + ((h - padY * 2) * i / 4);
+ctx.beginPath();
+ctx.moveTo(padX, y); ctx.lineTo(w - padX, y);
+ctx.stroke();
+ctx.fillStyle = '#2d3a4a';
+ctx.font = '10px JetBrains Mono';
+ctx.textAlign = 'right';
+const v = Math.round(max - (max - min) * i / 4);
+ctx.fillText(v, padX - 6, y + 3);
+}
+
+ctx.strokeStyle = '#2d6a4f';
+ctx.lineWidth = 2;
+ctx.beginPath();
+data.forEach((v, i) => {
+const x = padX + ((w - padX * 2) * (data.length === 1 ? 0.5 : i / (data.length - 1)));
+const y = padY + ((h - padY * 2) * (1 - (v - min) / (max - min)));
+if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+});
+ctx.stroke();
+
+ctx.fillStyle = '#2d6a4f';
+data.forEach((v, i) => {
+const x = padX + ((w - padX * 2) * (data.length === 1 ? 0.5 : i / (data.length - 1)));
+const y = padY + ((h - padY * 2) * (1 - (v - min) / (max - min)));
+ctx.beginPath();
+ctx.arc(x, y, 3.5, 0, Math.PI * 2);
+ctx.fill();
+});
+}
+
+function renderCompare() {
+const history = load(STORAGE.history, []);
+const c = $('compareContent');
+if (history.length < 2) {
+c.innerHTML = `
+<div class="history-empty">
+<p>比較には2回以上の測定が必要です。</p>
+<p style="font-size: 13px;">現在の記録: ${history.length} 件</p>
+</div>`;
+return;
+}
+
+const opts = history.map((h, i) =>
+`<option value="${i}">${new Date(h.timestamp).toLocaleString('ja-JP', {month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})} (${h.overall}点)</option>`
+).join('');
+
+c.innerHTML = `
+<div class="setup-card" style="margin-bottom: 20px;">
+<div class="setup-row">
+<div class="field">
+<label>Before（過去）</label>
+<select id="cmpBefore">${opts}</select>
+</div>
+<div class="field">
+<label>After（最新）</label>
+<select id="cmpAfter">${opts}</select>
+</div>
+</div>
+</div>
+<div id="cmpResult"></div>
+`;
+
+$('cmpBefore').value = 0;
+$('cmpAfter').value = history.length - 1;
+
+const labelMap = {posture:'姿勢', head:'頭部', pelvic:'骨盤', symmetry:'対称性', rhythm:'リズム'};
+const renderCmp = () => {
+const a = history[parseInt($('cmpBefore').value)];
+const b = history[parseInt($('cmpAfter').value)];
+const diff = b.overall - a.overall;
+const sign = diff >= 0 ? '+' : '';
+
+const metricRows = a.metrics.map((m, i) => {
+const bm = b.metrics[i];
+const d = bm.score - m.score;
+const ds = d >= 0 ? '+' : '';
+return `
+<div class="metric">
+<div class="metric-name">${labelMap[m.key] || m.key}</div>
+<div style="display:flex;gap:14px;align-items:center;">
+<span style="font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--ink-soft);">${m.score} → ${bm.score}</span>
+<span style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:500;color:${d>=0?'var(--accent)':'var(--rust)'};min-width:40px;text-align:right;">${ds}${d}</span>
+</div>
+</div>`;
+}).join('');
+
+$('cmpResult').innerHTML = `
+<div class="compare-grid">
+<div class="compare-side">
+<div class="label">BEFORE</div>
+<div class="score">${a.overall}</div>
+<div class="date">${new Date(a.timestamp).toLocaleDateString('ja-JP')}</div>
+</div>
+<div class="compare-side">
+<div class="label">AFTER</div>
+<div class="score">${b.overall}</div>
+<div class="date">${new Date(b.timestamp).toLocaleDateString('ja-JP')}</div>
+</div>
+</div>
+<div class="compare-arrow">
+<span style="color:${diff>=0?'var(--accent)':'var(--rust)'}">${sign}${diff} 点</span>
+</div>
+<div class="breakdown" style="margin-top: 24px;">
+<h2 style="font-family:'Fraunces',serif;font-weight:300;font-size:22px;margin-bottom:14px;">項目別変化</h2>
+${metricRows}
+</div>
+`;
+};
+
+$('cmpBefore').addEventListener('change', renderCmp);
+$('cmpAfter').addEventListener('change', renderCmp);
+renderCmp();
+}
+
+function renderGoal() {
+const goal = load(STORAGE.goal, null);
+const history = load(STORAGE.history, []);
+const display = $('goalDisplay');
+
+if (goal) {
+$('goalScore').value = goal.score;
+$('goalDate').value = goal.date;
+} else {
+const future = new Date();
+future.setMonth(future.getMonth() + 1);
+$('goalDate').value = future.toISOString().split('T')[0];
+}
+
+if (!goal) {
+display.innerHTML = `
+<div class="history-empty">
+<p>まだ目標が設定されていません。</p>
+<p style="font-size: 13px;">上のフォームから目標を設定しましょう。</p>
+</div>`;
+return;
+}
+
+const latest = history.length > 0 ? history[history.length - 1].overall : 0;
+const startScore = history.length > 0 ? history[0].overall : 0;
+const totalGain = goal.score - startScore;
+const currentGain = latest - startScore;
+const progress = totalGain > 0 ? Math.min(100, Math.max(0, (currentGain / totalGain) * 100)) : (latest >= goal.score ? 100 : 0);
+const daysLeft = Math.ceil((new Date(goal.date) - new Date()) / (1000 * 60 * 60 * 24));
+
+display.innerHTML = `
+<div class="goal-display">
+<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;">
+<span style="font-family:'Fraunces',serif;font-size:18px;">目標: ${goal.score} 点</span>
+<span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--ink-soft);">あと ${daysLeft > 0 ? daysLeft : 0} 日</span>
+</div>
+<div class="goal-bar"><div style="width:${progress}%"></div></div>
+<div class="goal-meta">
+<span>${startScore} → ${latest} 点</span>
+<span>進捗 ${Math.round(progress)}%</span>
+</div>
+<p style="font-size: 13px; color: var(--ink-soft); margin-top: 12px;">
+${latest >= goal.score ? '🎉 目標達成おめでとうございます！' :
+daysLeft <= 0 ? '期限を過ぎました。新しい目標を設定しましょう。' :
+`あと ${goal.score - latest} 点で目標達成です。`}
+</p>
+</div>
+`;
+}
+
+$('saveGoalBtn').addEventListener('click', () => {
+const score = parseInt($('goalScore').value);
+const date = $('goalDate').value;
+if (!score || !date) {
+alert('スコアと日付を入力してください');
+return;
+}
+saveLS(STORAGE.goal, { score, date });
+renderGoal();
+});
+
+const BADGES = [
+{ id: 'first', icon: '🎯', name: '初測定', desc: 'FIRST STEP', check: (h) => h.length >= 1 },
+{ id: 'three', icon: '📊', name: '3回測定', desc: '3 SESSIONS', check: (h) => h.length >= 3 },
+{ id: 'ten', icon: '🏆', name: '10回測定', desc: '10 SESSIONS', check: (h) => h.length >= 10 },
+{ id: 'thirty', icon: '⭐', name: '30回測定', desc: '30 SESSIONS', check: (h) => h.length >= 30 },
+{ id: 'score70', icon: '🥉', name: '70点突破', desc: 'SCORE 70+', check: (h) => h.some(x => x.overall >= 70) },
+{ id: 'score80', icon: '🥈', name: '80点突破', desc: 'SCORE 80+', check: (h) => h.some(x => x.overall >= 80) },
+{ id: 'score90', icon: '🥇', name: '90点突破', desc: 'SCORE 90+', check: (h) => h.some(x => x.overall >= 90) },
+{ id: 'improve10', icon: '📈', name: '10点向上', desc: '+10 IMPROVEMENT', check: (h) => h.length >= 2 && (Math.max(...h.map(x => x.overall)) - h[0].overall >= 10) },
+{ id: 'streak7', icon: '🔥', name: '7日連続', desc: '7 DAY STREAK', check: (h) => checkStreak(h, 7) },
+{ id: 'symmetric', icon: '⚖️', name: '完璧な対称性', desc: 'SYMMETRY 95+', check: (h) => h.some(x => x.metrics.find(m => m.key === 'symmetry')?.score >= 95) }
+];
+
+function checkStreak(history, days) {
+if (history.length < days) return false;
+const dates = [...new Set(history.map(h => new Date(h.timestamp).toDateString()))].sort();
+let max = 1, cur = 1;
+for (let i = 1; i < dates.length; i++) {
+const diff = (new Date(dates[i]) - new Date(dates[i-1])) / (1000 * 60 * 60 * 24);
+if (diff === 1) { cur++; max = Math.max(max, cur); }
+else cur = 1;
+}
+return max >= days;
+}
+
+function checkAndAwardBadges() {
+const history = load(STORAGE.history, []);
+const earned = load(STORAGE.badges, []);
+const newlyEarned = [];
+for (const b of BADGES) {
+if (!earned.includes(b.id) && b.check(history)) {
+earned.push(b.id);
+newlyEarned.push(b);
+}
+}
+saveLS(STORAGE.badges, earned);
+if (newlyEarned.length > 0) {
+setTimeout(() => {
+alert('🎉 新しいバッジを獲得しました!\n' + newlyEarned.map(b => `${b.icon} ${b.name}`).join('\n'));
+}, 2000);
+}
+}
+
+function renderBadges() {
+const earned = load(STORAGE.badges, []);
+$('badgesGrid').innerHTML = BADGES.map(b => `
+<div class="badge ${earned.includes(b.id) ? 'earned' : ''}">
+<div class="badge-icon">${b.icon}</div>
+<div class="badge-name">${b.name}</div>
+<div class="badge-desc">${b.desc}</div>
+</div>
+`).join('');
+}
+
+updateTakesIndicator();
 </script>
 </body>
 </html>
