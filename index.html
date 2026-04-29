@@ -1946,13 +1946,25 @@ drawingUtils.drawConnectors(result.landmarks[0], PoseLandmarker.POSE_CONNECTIONS
 { color: '#52b788', lineWidth: 3 });
 drawingUtils.drawLandmarks(result.landmarks[0],
 { color: '#f4ede0', fillColor: '#2d6a4f', radius: 4, lineWidth: 1 });
-frames.push({ t, lm: result.landmarks[0].map(p => ({ x: p.x, y: p.y, z: p.z })) });
+frames.push({
+t,
+lm: result.landmarks[0].map(p => ({
+x: p.x, y: p.y, z: p.z,
+v: p.visibility != null ? p.visibility : 1
+}))
+});
 }
 ctx.restore();
 
 $('progressFill').style.width = `${((i + 1) / totalFrames) * 100}%`;
 $('statusText').textContent = `フレーム ${i + 1} / ${totalFrames}`;
 }
+
+// ===== ノイズ除去・誤検出補正 (A + B + C) =====
+$('statusText').textContent = '検出結果を検証中...';
+const cleanResult = cleanupFrames(frames);
+frames = cleanResult.frames;
+const detectionQuality = cleanResult.quality;
 
 if (frames.length < 5) {
 showError('身体を検出できませんでした。全身がはっきり映る動画でお試しください。');
@@ -1961,10 +1973,17 @@ $('uploadZone').style.display = 'block';
 return;
 }
 
+// 撮影ガイド + 検出品質の統合表示
+const detectionMsg = detectionQuality
+? `<div style="margin-top: 8px; font-size: 13px; color: ${detectionQuality.level === 'good' ? 'var(--accent)' : detectionQuality.level === 'fair' ? 'var(--gold)' : 'var(--rust)'};">骨格検出品質: ${detectionQuality.level === 'good' ? '◎ 良好' : detectionQuality.level === 'fair' ? '○ やや不安定' : '△ 不安定'} — ${detectionQuality.message}</div>`
+: '';
+
 if (!guideCheckResult.ok) {
-showGuide(`<h4>撮影品質の警告</h4>${guideCheckResult.message} 解析は続行しますが、精度が下がる可能性があります。`);
+showGuide(`<h4>撮影品質の警告</h4>${guideCheckResult.message} 解析は続行しますが、精度が下がる可能性があります。${detectionMsg}`);
+} else if (detectionQuality && detectionQuality.level !== 'good') {
+showGuide(`<h4>撮影品質: 良好（検出に注意）</h4>${guideCheckResult.message}${detectionMsg}`, detectionQuality.level === 'fair');
 } else {
-showGuide(`<h4>撮影品質: 良好</h4>${guideCheckResult.message}`, true);
+showGuide(`<h4>撮影品質: 良好</h4>${guideCheckResult.message}${detectionMsg}`, true);
 }
 
 $('statusText').textContent = '採点中...';
@@ -1995,6 +2014,7 @@ return;
 const scoring = scoreGait(frames, viewpoint);
 // ROM計算を追加
 scoring.rom = calculateROM(frames, viewpoint);
+scoring.detectionQuality = detectionQuality;
 
 takeResults.push({ scoring, frames: [...frames], viewpoint });
 currentTake++;
@@ -2106,6 +2126,155 @@ L_ANKLE: 27, R_ANKLE: 28
 function midpoint(a, b) { return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }; }
 function mean(a) { return a.reduce((s, v) => s + v, 0) / a.length; }
 function std(a) { const m = mean(a); return Math.sqrt(mean(a.map(v => (v - m) ** 2))); }
+function dist(a, b) { return Math.sqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2); }
+function median(arr) {
+if (arr.length === 0) return 0;
+const s = [...arr].sort((a, b) => a - b);
+const m = Math.floor(s.length / 2);
+return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
+}
+
+// ============== フレーム後処理: 誤検出を補正・除外 ==============
+// A: 信頼度チェック / B: 解剖学的妥当性 / C: 時間方向スムージング
+function cleanupFrames(frames) {
+if (frames.length < 3) return { frames, quality: { reliable: false, message: 'フレーム数が不足しています' } };
+
+const cleanedFrames = frames.map(f => ({ t: f.t, lm: f.lm.map(p => ({ ...p })) }));
+
+// ===== A: visibility（信頼度）に基づくマーキング =====
+const VIS_THRESHOLD = 0.5;
+let totalLowVisCount = 0;
+let totalChecks = 0;
+const keyPointIndices = [L.NOSE, L.L_SHOULDER, L.R_SHOULDER, L.L_HIP, L.R_HIP,
+L.L_KNEE, L.R_KNEE, L.L_ANKLE, L.R_ANKLE];
+
+cleanedFrames.forEach(f => {
+keyPointIndices.forEach(idx => {
+totalChecks++;
+if ((f.lm[idx].v ?? 1) < VIS_THRESHOLD) {
+totalLowVisCount++;
+f.lm[idx]._lowVis = true;
+}
+});
+});
+
+// ===== B: 解剖学的妥当性チェック =====
+// 各フレームで「足首が膝から不自然に離れている」「足首が膝より上にある」などをチェック
+cleanedFrames.forEach((f, idx) => {
+const lm = f.lm;
+const torsoLength = dist(midpoint(lm[L.L_SHOULDER], lm[L.R_SHOULDER]),
+midpoint(lm[L.L_HIP], lm[L.R_HIP]));
+if (torsoLength < 0.05) return; // 検出が不安定すぎるフレーム
+
+// 左下肢チェック
+const lThigh = dist(lm[L.L_HIP], lm[L.L_KNEE]);
+const lShin = dist(lm[L.L_KNEE], lm[L.L_ANKLE]);
+// 大腿と下腿の比率は通常 0.7〜1.3 程度
+if (lThigh > 0.01 && (lShin / lThigh < 0.5 || lShin / lThigh > 1.8)) {
+lm[L.L_ANKLE]._anomaly = true;
+}
+// 足首が膝より明らかに上（y座標で）にある場合は誤検出（歩行中はあり得ない）
+if (lm[L.L_ANKLE].y < lm[L.L_KNEE].y - 0.05) {
+lm[L.L_ANKLE]._anomaly = true;
+}
+
+// 右下肢チェック
+const rThigh = dist(lm[L.R_HIP], lm[L.R_KNEE]);
+const rShin = dist(lm[L.R_KNEE], lm[L.R_ANKLE]);
+if (rThigh > 0.01 && (rShin / rThigh < 0.5 || rShin / rThigh > 1.8)) {
+lm[L.R_ANKLE]._anomaly = true;
+}
+if (lm[L.R_ANKLE].y < lm[L.R_KNEE].y - 0.05) {
+lm[L.R_ANKLE]._anomaly = true;
+}
+});
+
+// ===== C: 時間方向スムージング（外れ値の補間） =====
+// 各キー関節について、前後3フレームの中央値から大きく外れた点を補正
+const SMOOTH_INDICES = [L.L_ANKLE, L.R_ANKLE, L.L_KNEE, L.R_KNEE, L.L_HIP, L.R_HIP];
+const JUMP_THRESHOLD = 0.08; // 8% 以上の急激な移動は外れ値とみなす
+
+for (const idx of SMOOTH_INDICES) {
+for (let i = 1; i < cleanedFrames.length - 1; i++) {
+const prev = cleanedFrames[i - 1].lm[idx];
+const curr = cleanedFrames[i].lm[idx];
+const next = cleanedFrames[i + 1].lm[idx];
+
+const distPrevCurr = dist(prev, curr);
+const distCurrNext = dist(curr, next);
+const distPrevNext = dist(prev, next);
+
+// 急激なジャンプ + 信頼度低 + 解剖学的異常のいずれかがあれば補正
+const isJump = distPrevCurr > JUMP_THRESHOLD && distCurrNext > JUMP_THRESHOLD
+&& distPrevNext < distPrevCurr * 0.6;
+const isLowVis = curr._lowVis;
+const isAnomaly = curr._anomaly;
+
+if (isJump || isLowVis || isAnomaly) {
+// 前後フレームの中央値で補間
+curr.x = (prev.x + next.x) / 2;
+curr.y = (prev.y + next.y) / 2;
+curr.z = (prev.z + next.z) / 2;
+curr._corrected = true;
+}
+}
+}
+
+// 最終フレーム・最初のフレームの異常も処理（前後どちらかからコピー）
+for (const idx of SMOOTH_INDICES) {
+const first = cleanedFrames[0].lm[idx];
+if (first._lowVis || first._anomaly) {
+const next = cleanedFrames[1].lm[idx];
+first.x = next.x; first.y = next.y; first.z = next.z;
+first._corrected = true;
+}
+const lastIdx = cleanedFrames.length - 1;
+const last = cleanedFrames[lastIdx].lm[idx];
+if (last._lowVis || last._anomaly) {
+const prev = cleanedFrames[lastIdx - 1].lm[idx];
+last.x = prev.x; last.y = prev.y; last.z = prev.z;
+last._corrected = true;
+}
+}
+
+// ===== 検出品質の判定 =====
+let totalCorrected = 0;
+cleanedFrames.forEach(f => {
+SMOOTH_INDICES.forEach(idx => {
+if (f.lm[idx]._corrected) totalCorrected++;
+});
+});
+
+const correctedRate = totalCorrected / (cleanedFrames.length * SMOOTH_INDICES.length);
+const lowVisRate = totalLowVisCount / totalChecks;
+
+let reliable = true;
+let level = 'good'; // 'good', 'fair', 'poor'
+let message = '';
+
+if (correctedRate < 0.10 && lowVisRate < 0.15) {
+level = 'good';
+message = '骨格検出は良好です。';
+} else if (correctedRate < 0.30 && lowVisRate < 0.35) {
+level = 'fair';
+message = `一部のフレームで検出が不安定でした（補正済み: ${Math.round(correctedRate * 100)}%）。結果は概ね信頼できますが、撮影環境の改善で精度が向上します。`;
+} else {
+level = 'poor';
+reliable = false;
+message = `検出が不安定なフレームが多数ありました（補正済み: ${Math.round(correctedRate * 100)}%、低信頼度: ${Math.round(lowVisRate * 100)}%）。結果は参考値としてご覧ください。手すり・他の人物・暗さなどが影響している可能性があります。`;
+}
+
+return {
+frames: cleanedFrames,
+quality: {
+reliable,
+level,
+message,
+correctedRate,
+lowVisRate
+}
+};
+}
 
 function scoreGait(frames, viewpoint = 'side') {
 const isTreadmill = viewpoint.startsWith('tm_');
@@ -2877,6 +3046,13 @@ if (u.history.length > 200) u.history.shift();
 
 function averageResults(results) {
 if (results.length === 1) return results[0];
+// 複数回の検出品質のうち最も悪いものを採用
+const qualities = results.map(r => r.detectionQuality).filter(Boolean);
+let worstQuality = null;
+if (qualities.length > 0) {
+const order = { good: 0, fair: 1, poor: 2 };
+worstQuality = qualities.reduce((a, b) => (order[a.level] >= order[b.level] ? a : b));
+}
 return {
 overall: Math.round(mean(results.map(r => r.overall))),
 metrics: results[0].metrics.map((m, i) => ({
@@ -2888,6 +3064,7 @@ cadence: Math.round(mean(results.map(r => r.cadence))),
 viewpoint: results[0].viewpoint,
 pains: results[0].pains,
 problemFrames: results[results.length - 1].problemFrames,
+detectionQuality: worstQuality,
 timestamp: Date.now(),
 takes: results.length
 };
@@ -2995,6 +3172,12 @@ pains: takeResults[0].scoring.pains,
 problemFrames: takeResults[takeResults.length - 1].scoring.problemFrames,
 multiResults: { side: sideR, front: frontR, back: backR },
 findings,
+detectionQuality: (() => {
+const qs = takeResults.map(t => t.scoring.detectionQuality).filter(Boolean);
+if (qs.length === 0) return null;
+const order = { good: 0, fair: 1, poor: 2 };
+return qs.reduce((a, b) => (order[a.level] >= order[b.level] ? a : b));
+})(),
 timestamp: Date.now()
 };
 }
@@ -3268,6 +3451,22 @@ ${f.back.map(x => '<li>・' + x + '</li>').join('')}
 findingsBox.innerHTML = '';
 }
 
+// 検出品質警告（poor/fairの場合のみ表示）
+if (result.detectionQuality && result.detectionQuality.level !== 'good') {
+const dq = result.detectionQuality;
+const cls = dq.level === 'poor' ? 'danger' : 'warning';
+const icon = dq.level === 'poor' ? '⚠' : 'ℹ︎';
+findingsBox.innerHTML += `
+<div class="risk-section" style="border-bottom: 1px solid var(--line);">
+<div class="risk-card ${cls}">
+<div class="risk-label">${icon} 骨格検出品質</div>
+<div class="risk-level" style="font-size: 16px;">${dq.level === 'poor' ? '不安定 - 結果は参考値です' : 'やや不安定'}</div>
+<div class="risk-desc">${dq.message}</div>
+</div>
+</div>
+`;
+}
+
 // ROM表示
 const romBox = $('romBox');
 if (result.rom) {
@@ -3378,15 +3577,24 @@ ctx.fill();
 });
 
 const wbox = $('reviewWarning');
+// 補正フレームのチェック（足首が補正されたか）
+const isCorrected = (lm[L.L_ANKLE]?._corrected || lm[L.R_ANKLE]?._corrected ||
+lm[L.L_KNEE]?._corrected || lm[L.R_KNEE]?._corrected);
 if (isProblem) {
 const issues = [];
 if (result.problemFrames.posture.includes(idx)) issues.push('体幹が傾いています');
 if (result.problemFrames.head.includes(idx)) issues.push('頭が前に出ています');
 if (result.problemFrames.pelvic.includes(idx)) issues.push('骨盤が傾いています');
+if (isCorrected) issues.push('（足の検出を自動補正）');
 wbox.textContent = '⚠ ' + issues.join(' / ');
 wbox.classList.add('active');
+} else if (isCorrected) {
+wbox.textContent = 'ℹ︎ このフレームは足の検出を自動補正しました';
+wbox.classList.add('active');
+wbox.style.background = 'rgba(212, 165, 116, 0.85)';
 } else {
 wbox.classList.remove('active');
+wbox.style.background = '';
 }
 
 $('reviewFrameLabel').textContent = `${idx + 1} / ${currentFrames.length}`;
