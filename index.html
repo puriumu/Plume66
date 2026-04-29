@@ -955,6 +955,20 @@ color: #888;
 <input type="text" id="measureNote" placeholder="例: 歩行器使用、めまい訴え" />
 </div>
 </div>
+<div class="setup-row" id="handrailRow" style="display: none;">
+<div class="field">
+<label>手すり除外（トレッドミル用）</label>
+<select id="handrailMode">
+<option value="off">OFF</option>
+<option value="auto">自動検出</option>
+<option value="manual">手動指定</option>
+</select>
+</div>
+<div class="field" id="handrailManualField" style="display: none;">
+<label>手すりの高さ（画面下から %）</label>
+<input type="number" id="handrailHeight" min="20" max="80" value="50" />
+</div>
+</div>
 <div class="field" style="margin-top: 8px;">
 <label>痛みのある部位（複数選択可）</label>
 <div class="pain-map">
@@ -1738,6 +1752,22 @@ chip.classList.add('active');
 });
 });
 
+// ============== 手すり除外UIの表示制御 ==============
+function updateHandrailUI() {
+const vp = $('viewpoint').value;
+const isTM = vp.startsWith('tm_');
+$('handrailRow').style.display = isTM ? 'grid' : 'none';
+if (!isTM) {
+$('handrailMode').value = 'off';
+$('handrailManualField').style.display = 'none';
+}
+}
+$('viewpoint').addEventListener('change', updateHandrailUI);
+$('handrailMode').addEventListener('change', (e) => {
+$('handrailManualField').style.display = e.target.value === 'manual' ? 'block' : 'none';
+});
+updateHandrailUI();
+
 // ============== Multi-take ==============
 let takeResults = [];
 let currentTake = 0;
@@ -2136,15 +2166,46 @@ return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
 
 // ============== フレーム後処理: 誤検出を補正・除外 ==============
 // A: 信頼度チェック / B: 解剖学的妥当性 / C: 時間方向スムージング
+// + 強化版: 足首-膝の上下関係チェック / 手すり除外
 function cleanupFrames(frames) {
 if (frames.length < 3) return { frames, quality: { reliable: false, message: 'フレーム数が不足しています' } };
 
 const cleanedFrames = frames.map(f => ({ t: f.t, lm: f.lm.map(p => ({ ...p })) }));
 
+// ===== 手すり除外設定の取得 =====
+const handrailMode = $('handrailMode')?.value || 'off';
+let handrailY = null; // 手すりラインのy座標（0〜1, 0が上、1が下）
+const HANDRAIL_BAND = 0.07; // 手すり位置から±7%以内の足首は誤検出とみなす
+
+if (handrailMode === 'manual') {
+// ユーザー指定: 画面下から% → y座標 (1 - %/100)
+const heightPct = parseInt($('handrailHeight')?.value || 50);
+handrailY = 1 - (heightPct / 100);
+} else if (handrailMode === 'auto') {
+// 自動検出: 多くのフレームで手首がほぼ同じ高さに静止していれば、それが手すり
+// 左右の手首の中央値を計算し、ばらつきが小さければそれを手すりとみなす
+const wristYs = [];
+cleanedFrames.forEach(f => {
+// 手首は landmark 15 (左) と 16 (右)
+if (f.lm[15] && (f.lm[15].v ?? 1) > 0.4) wristYs.push(f.lm[15].y);
+if (f.lm[16] && (f.lm[16].v ?? 1) > 0.4) wristYs.push(f.lm[16].y);
+});
+if (wristYs.length > 5) {
+const wristMedian = median(wristYs);
+const wristStd = std(wristYs);
+// 手首の動きが小さい（つかまっている）と判断できる場合のみ手すり位置として採用
+if (wristStd < 0.04) {
+handrailY = wristMedian;
+}
+}
+}
+
 // ===== A: visibility（信頼度）に基づくマーキング =====
 const VIS_THRESHOLD = 0.5;
 let totalLowVisCount = 0;
 let totalChecks = 0;
+let handrailExclusionCount = 0;
+let kneeAnkleViolationCount = 0;
 const keyPointIndices = [L.NOSE, L.L_SHOULDER, L.R_SHOULDER, L.L_HIP, L.R_HIP,
 L.L_KNEE, L.R_KNEE, L.L_ANKLE, L.R_ANKLE];
 
@@ -2158,41 +2219,65 @@ f.lm[idx]._lowVis = true;
 });
 });
 
-// ===== B: 解剖学的妥当性チェック =====
-// 各フレームで「足首が膝から不自然に離れている」「足首が膝より上にある」などをチェック
+// ===== B: 解剖学的妥当性チェック（強化版） =====
 cleanedFrames.forEach((f, idx) => {
 const lm = f.lm;
 const torsoLength = dist(midpoint(lm[L.L_SHOULDER], lm[L.R_SHOULDER]),
 midpoint(lm[L.L_HIP], lm[L.R_HIP]));
-if (torsoLength < 0.05) return; // 検出が不安定すぎるフレーム
+if (torsoLength < 0.05) return;
 
-// 左下肢チェック
-const lThigh = dist(lm[L.L_HIP], lm[L.L_KNEE]);
-const lShin = dist(lm[L.L_KNEE], lm[L.L_ANKLE]);
-// 大腿と下腿の比率は通常 0.7〜1.3 程度
-if (lThigh > 0.01 && (lShin / lThigh < 0.5 || lShin / lThigh > 1.8)) {
-lm[L.L_ANKLE]._anomaly = true;
-}
-// 足首が膝より明らかに上（y座標で）にある場合は誤検出（歩行中はあり得ない）
-if (lm[L.L_ANKLE].y < lm[L.L_KNEE].y - 0.05) {
-lm[L.L_ANKLE]._anomaly = true;
+// ルール1強化: 足首は膝より「下（y座標が大きい）」にあるべき
+// 歩行中、足首が膝とほぼ同じ高さや、ましてや上にあることは無い
+// 膝のy座標から少なくとも 0.5*下腿長 以上下にあるはず
+const checkLeg = (hipIdx, kneeIdx, ankleIdx, sideName) => {
+const hip = lm[hipIdx], knee = lm[kneeIdx], ankle = lm[ankleIdx];
+const thighLen = dist(hip, knee);
+const expectedShinLen = thighLen * 0.95; // 大腿と下腿はほぼ同じ長さ
+
+// ルール1: 足首のy座標が膝より十分下にない
+// 期待値: ankle.y >= knee.y + expectedShinLen * 0.4 (最低でも下腿の40%は下方向)
+const yDifference = ankle.y - knee.y;
+const minExpectedY = expectedShinLen * 0.3; // この値より差が小さいと異常
+
+if (yDifference < minExpectedY) {
+ankle._anomaly = true;
+ankle._reason = 'kneeAnkle';
+kneeAnkleViolationCount++;
 }
 
-// 右下肢チェック
-const rThigh = dist(lm[L.R_HIP], lm[L.R_KNEE]);
-const rShin = dist(lm[L.R_KNEE], lm[L.R_ANKLE]);
-if (rThigh > 0.01 && (rShin / rThigh < 0.5 || rShin / rThigh > 1.8)) {
-lm[L.R_ANKLE]._anomaly = true;
+// ルール2: 足首が膝より明確に上にある（あり得ない）
+if (ankle.y < knee.y - 0.02) {
+ankle._anomaly = true;
+ankle._reason = 'kneeAnkle';
 }
-if (lm[L.R_ANKLE].y < lm[L.R_KNEE].y - 0.05) {
-lm[L.R_ANKLE]._anomaly = true;
+
+// ルール3: 大腿/下腿の比率異常
+const shinLen = dist(knee, ankle);
+if (thighLen > 0.01) {
+const ratio = shinLen / thighLen;
+if (ratio < 0.5 || ratio > 1.8) {
+ankle._anomaly = true;
+ankle._reason = ankle._reason || 'ratio';
 }
+}
+
+// 手すり除外
+if (handrailY !== null) {
+if (Math.abs(ankle.y - handrailY) < HANDRAIL_BAND) {
+ankle._anomaly = true;
+ankle._reason = 'handrail';
+handrailExclusionCount++;
+}
+}
+};
+
+checkLeg(L.L_HIP, L.L_KNEE, L.L_ANKLE, 'L');
+checkLeg(L.R_HIP, L.R_KNEE, L.R_ANKLE, 'R');
 });
 
 // ===== C: 時間方向スムージング（外れ値の補間） =====
-// 各キー関節について、前後3フレームの中央値から大きく外れた点を補正
 const SMOOTH_INDICES = [L.L_ANKLE, L.R_ANKLE, L.L_KNEE, L.R_KNEE, L.L_HIP, L.R_HIP];
-const JUMP_THRESHOLD = 0.08; // 8% 以上の急激な移動は外れ値とみなす
+const JUMP_THRESHOLD = 0.08;
 
 for (const idx of SMOOTH_INDICES) {
 for (let i = 1; i < cleanedFrames.length - 1; i++) {
@@ -2204,36 +2289,58 @@ const distPrevCurr = dist(prev, curr);
 const distCurrNext = dist(curr, next);
 const distPrevNext = dist(prev, next);
 
-// 急激なジャンプ + 信頼度低 + 解剖学的異常のいずれかがあれば補正
 const isJump = distPrevCurr > JUMP_THRESHOLD && distCurrNext > JUMP_THRESHOLD
 && distPrevNext < distPrevCurr * 0.6;
 const isLowVis = curr._lowVis;
 const isAnomaly = curr._anomaly;
 
 if (isJump || isLowVis || isAnomaly) {
-// 前後フレームの中央値で補間
+// 前後フレームのうち、_anomalyでない方を優先
+const prevValid = !prev._anomaly && !prev._lowVis;
+const nextValid = !next._anomaly && !next._lowVis;
+
+if (prevValid && nextValid) {
 curr.x = (prev.x + next.x) / 2;
 curr.y = (prev.y + next.y) / 2;
 curr.z = (prev.z + next.z) / 2;
+} else if (prevValid) {
+curr.x = prev.x; curr.y = prev.y; curr.z = prev.z;
+} else if (nextValid) {
+curr.x = next.x; curr.y = next.y; curr.z = next.z;
+} else {
+// 前後とも異常 → そのまま
+continue;
+}
 curr._corrected = true;
 }
 }
 }
 
-// 最終フレーム・最初のフレームの異常も処理（前後どちらかからコピー）
+// 端フレームの処理
 for (const idx of SMOOTH_INDICES) {
 const first = cleanedFrames[0].lm[idx];
 if (first._lowVis || first._anomaly) {
-const next = cleanedFrames[1].lm[idx];
-first.x = next.x; first.y = next.y; first.z = next.z;
+// 後ろから最初の正常フレームを探す
+for (let j = 1; j < Math.min(5, cleanedFrames.length); j++) {
+const cand = cleanedFrames[j].lm[idx];
+if (!cand._anomaly && !cand._lowVis) {
+first.x = cand.x; first.y = cand.y; first.z = cand.z;
 first._corrected = true;
+break;
+}
+}
 }
 const lastIdx = cleanedFrames.length - 1;
 const last = cleanedFrames[lastIdx].lm[idx];
 if (last._lowVis || last._anomaly) {
-const prev = cleanedFrames[lastIdx - 1].lm[idx];
-last.x = prev.x; last.y = prev.y; last.z = prev.z;
+for (let j = lastIdx - 1; j >= Math.max(0, lastIdx - 5); j--) {
+const cand = cleanedFrames[j].lm[idx];
+if (!cand._anomaly && !cand._lowVis) {
+last.x = cand.x; last.y = cand.y; last.z = cand.z;
 last._corrected = true;
+break;
+}
+}
 }
 }
 
@@ -2249,19 +2356,28 @@ const correctedRate = totalCorrected / (cleanedFrames.length * SMOOTH_INDICES.le
 const lowVisRate = totalLowVisCount / totalChecks;
 
 let reliable = true;
-let level = 'good'; // 'good', 'fair', 'poor'
+let level = 'good';
 let message = '';
+const detail = [];
+
+if (handrailExclusionCount > 0) {
+detail.push(`手すり位置の誤検出を除外: ${handrailExclusionCount}件`);
+}
+if (kneeAnkleViolationCount > 0) {
+detail.push(`足首位置の解剖学的異常を補正: ${kneeAnkleViolationCount}件`);
+}
+const detailStr = detail.length > 0 ? '（' + detail.join(' / ') + '）' : '';
 
 if (correctedRate < 0.10 && lowVisRate < 0.15) {
 level = 'good';
-message = '骨格検出は良好です。';
+message = '骨格検出は良好です。' + detailStr;
 } else if (correctedRate < 0.30 && lowVisRate < 0.35) {
 level = 'fair';
-message = `一部のフレームで検出が不安定でした（補正済み: ${Math.round(correctedRate * 100)}%）。結果は概ね信頼できますが、撮影環境の改善で精度が向上します。`;
+message = `一部のフレームで検出が不安定でしたが補正済みです（補正率: ${Math.round(correctedRate * 100)}%）${detailStr}。結果は概ね信頼できます。`;
 } else {
 level = 'poor';
 reliable = false;
-message = `検出が不安定なフレームが多数ありました（補正済み: ${Math.round(correctedRate * 100)}%、低信頼度: ${Math.round(lowVisRate * 100)}%）。結果は参考値としてご覧ください。手すり・他の人物・暗さなどが影響している可能性があります。`;
+message = `検出が不安定なフレームが多数ありました（補正率: ${Math.round(correctedRate * 100)}%、低信頼度: ${Math.round(lowVisRate * 100)}%）${detailStr}。手すり・他の人物・暗さなどが影響している可能性があります。手すり除外モードのご利用もお試しください。`;
 }
 
 return {
@@ -2271,7 +2387,10 @@ reliable,
 level,
 message,
 correctedRate,
-lowVisRate
+lowVisRate,
+handrailExclusionCount,
+kneeAnkleViolationCount,
+handrailY
 }
 };
 }
