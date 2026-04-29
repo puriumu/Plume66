@@ -1010,9 +1010,18 @@ color: #888;
 <span style="flex: 1;"></span>
 <button class="btn btn-ghost" id="roiBtn" style="padding: 7px 14px; font-size: 12px;">範囲を指定</button>
 <button class="btn btn-ghost" id="roiClearBtn" style="padding: 7px 14px; font-size: 12px; display: none;">範囲を解除</button>
+<button class="btn btn-ghost" id="manualBtn" style="padding: 7px 14px; font-size: 12px;">手動補正</button>
 </div>
 <div id="roiInstructions" style="display: none; padding: 10px 20px; background: rgba(212, 165, 116, 0.15); border-top: 1px solid var(--line); font-size: 13px; color: var(--ink);">
 画面上で人物が動く範囲を<strong>長方形でドラッグ</strong>してください。手すりや他の人物を含めないように囲みます。
+</div>
+<div id="manualInstructions" style="display: none; padding: 10px 20px; background: rgba(82, 183, 136, 0.1); border-top: 1px solid var(--line); font-size: 13px; color: var(--ink);">
+骨格点を<strong>指でドラッグ</strong>して正しい位置に動かしてください。1コマ目で全体を整えたら「全コマに適用」を押すと他のコマにも反映されます。各コマで足首位置が違う場合は個別に微調整してください。
+<div style="margin-top: 8px; display: flex; gap: 6px; flex-wrap: wrap;">
+<button class="btn btn-accent" id="applyToAllBtn" style="padding: 5px 10px; font-size: 11px;">全コマに適用</button>
+<button class="btn btn-ghost" id="resetManualBtn" style="padding: 5px 10px; font-size: 11px;">このコマをリセット</button>
+<button class="btn btn-ghost" id="exitManualBtn" style="padding: 5px 10px; font-size: 11px;">補正を終了</button>
+</div>
 </div>
 <div style="padding: 14px 20px; display: flex; gap: 8px; flex-wrap: wrap; border-top: 1px solid var(--line);">
 <button class="btn btn-ghost" id="cancelPreviewBtn">撮り直し</button>
@@ -2038,31 +2047,59 @@ const connections = [
 [11,23],[12,24],[23,24],
 [23,25],[25,27],[24,26],[26,28]
 ];
-ctx.strokeStyle = '#52b788';
-ctx.lineWidth = 4;
+ctx.lineWidth = manualMode ? 5 : 4;
 connections.forEach(([a, b]) => {
 const pa = f.lm[a], pb = f.lm[b];
+if (!pa || !pb) return;
 if ((pa.v ?? 1) < 0.3 || (pb.v ?? 1) < 0.3) {
-ctx.strokeStyle = '#c1654c'; // 低信頼度は赤系
+ctx.strokeStyle = '#c1654c';
 } else {
-ctx.strokeStyle = '#52b788';
+ctx.strokeStyle = manualMode ? '#52b788' : '#52b788';
 }
 ctx.beginPath();
 ctx.moveTo(pa.x * w, pa.y * h);
 ctx.lineTo(pb.x * w, pb.y * h);
 ctx.stroke();
 });
-// ランドマーク点
-[0, 11, 12, 23, 24, 25, 26, 27, 28].forEach(i => {
+
+// ランドマーク点（手動補正モード時は大きく + ラベル付き）
+const pointRadius = manualMode ? 12 : 6;
+const pointsToDraw = manualMode ? MANUAL_POINTS : [0, 11, 12, 23, 24, 25, 26, 27, 28];
+pointsToDraw.forEach(i => {
 const p = f.lm[i];
-ctx.fillStyle = (p.v ?? 1) < 0.3 ? '#c1654c' : '#f4ede0';
+if (!p) return;
+const lowVis = (p.v ?? 1) < 0.3;
+// ハロー（大きい円・色つき）
+if (manualMode) {
+ctx.fillStyle = 'rgba(82, 183, 136, 0.3)';
 ctx.beginPath();
-ctx.arc(p.x * w, p.y * h, 6, 0, Math.PI * 2);
+ctx.arc(p.x * w, p.y * h, pointRadius + 4, 0, Math.PI * 2);
+ctx.fill();
+}
+ctx.fillStyle = lowVis ? '#c1654c' : (manualMode ? '#52b788' : '#f4ede0');
+ctx.beginPath();
+ctx.arc(p.x * w, p.y * h, pointRadius, 0, Math.PI * 2);
 ctx.fill();
 ctx.strokeStyle = '#1a2332';
-ctx.lineWidth = 1.5;
+ctx.lineWidth = 2;
 ctx.stroke();
+
+// 手動補正モードのラベル
+if (manualMode && POINT_LABELS[i]) {
+ctx.fillStyle = 'rgba(26, 35, 50, 0.8)';
+ctx.font = 'bold 14px sans-serif';
+ctx.textAlign = 'left';
+ctx.fillText(POINT_LABELS[i], p.x * w + pointRadius + 4, p.y * h + 4);
+}
 });
+
+// 手動補正済みの印（コマ番号のところに●）
+if (manualMode && manualEditedFrames[currentPreviewIdx]) {
+ctx.fillStyle = '#2d6a4f';
+ctx.font = 'bold 14px sans-serif';
+ctx.textAlign = 'left';
+ctx.fillText('● 手動補正済み', 12, 24);
+}
 }
 
 // ROIを描画
@@ -2072,7 +2109,6 @@ ctx.lineWidth = 3;
 ctx.setLineDash([8, 4]);
 ctx.strokeRect(userROI.x * w, userROI.y * h, userROI.w * w, userROI.h * h);
 ctx.setLineDash([]);
-// 半透明オーバーレイ（外側）
 ctx.fillStyle = 'rgba(26, 35, 50, 0.4)';
 ctx.fillRect(0, 0, w, userROI.y * h);
 ctx.fillRect(0, (userROI.y + userROI.h) * h, w, h);
@@ -2177,6 +2213,166 @@ previewCanvasEl.addEventListener('mouseup', onCanvasUp);
 previewCanvasEl.addEventListener('touchstart', onCanvasDown, { passive: false });
 previewCanvasEl.addEventListener('touchmove', onCanvasMove, { passive: false });
 previewCanvasEl.addEventListener('touchend', onCanvasUp, { passive: false });
+
+// ============== 手動骨格補正モード ==============
+let manualMode = false;
+let manualEditedFrames = [false, false, false, false, false]; // 各プレビュー枠が編集済みか
+let draggingPointIdx = -1; // 現在ドラッグ中のランドマーク番号
+const MANUAL_POINTS = [
+0, // NOSE
+11, 12, // 左肩, 右肩
+23, 24, // 左腰, 右腰
+25, 26, // 左膝, 右膝
+27, 28, // 左足首, 右足首
+13, 14, // 左肘, 右肘
+15, 16 // 左手首, 右手首
+];
+const POINT_LABELS = {
+0: '頭', 11: '左肩', 12: '右肩', 13: '左肘', 14: '右肘',
+15: '左手首', 16: '右手首', 23: '左腰', 24: '右腰',
+25: '左膝', 26: '右膝', 27: '左足首', 28: '右足首'
+};
+
+$('manualBtn').addEventListener('click', () => {
+manualMode = true;
+$('manualInstructions').style.display = 'block';
+$('roiInstructions').style.display = 'none';
+$('manualBtn').textContent = '補正中...';
+drawPreviewFrame();
+});
+
+$('exitManualBtn').addEventListener('click', () => {
+manualMode = false;
+$('manualInstructions').style.display = 'none';
+$('manualBtn').textContent = '手動補正';
+drawPreviewFrame();
+});
+
+$('resetManualBtn').addEventListener('click', () => {
+if (!confirm('このコマの補正をリセットしますか？')) return;
+// 元の検出結果を復元したいが、保存していないため再検出
+const f = previewFrames[currentPreviewIdx];
+const video = $('video');
+video.currentTime = f.t;
+video.onseeked = () => {
+const result = poseLandmarker.detectForVideo(video, performance.now());
+if (result.landmarks && result.landmarks[0]) {
+f.lm = result.landmarks[0].map(p => ({
+x: p.x, y: p.y, z: p.z,
+v: p.visibility != null ? p.visibility : 1
+}));
+manualEditedFrames[currentPreviewIdx] = false;
+drawPreviewFrame();
+}
+};
+});
+
+$('applyToAllBtn').addEventListener('click', () => {
+// 現在のコマの骨格を全コマにコピー
+const src = previewFrames[currentPreviewIdx].lm;
+if (!src) {
+alert('現在のコマに骨格データがありません');
+return;
+}
+if (!confirm('現在のコマの骨格を全コマに適用しますか？個別に修正したいコマは後から微調整できます。')) return;
+previewFrames.forEach((f, idx) => {
+f.lm = src.map(p => ({ x: p.x, y: p.y, z: p.z, v: 0.95 })); // 手動補正なので高信頼度に
+manualEditedFrames[idx] = true;
+});
+drawPreviewFrame();
+alert('全コマに適用しました。各コマで微調整が必要なら、コマを移動して該当の関節を動かしてください。');
+});
+
+// ドラッグ用ヘルパー: 最も近い関節を見つける
+function findNearestPoint(canvas, e) {
+const f = previewFrames[currentPreviewIdx];
+if (!f || !f.lm) return -1;
+const p = getCanvasPoint(e, canvas);
+let nearestIdx = -1;
+let nearestDist = Infinity;
+for (const idx of MANUAL_POINTS) {
+const lm = f.lm[idx];
+if (!lm) continue;
+const d = Math.sqrt((lm.x - p.x) ** 2 + (lm.y - p.y) ** 2);
+if (d < nearestDist) {
+nearestDist = d;
+nearestIdx = idx;
+}
+}
+// タップ範囲: 0.05（画面の5%）以内なら選択とみなす
+return nearestDist < 0.06 ? nearestIdx : -1;
+}
+
+function onManualDown(e) {
+if (!manualMode) return false;
+e.preventDefault();
+e.stopPropagation();
+const idx = findNearestPoint($('previewCanvas'), e);
+if (idx >= 0) {
+draggingPointIdx = idx;
+return true;
+}
+return false;
+}
+
+function onManualMove(e) {
+if (!manualMode || draggingPointIdx < 0) return false;
+e.preventDefault();
+e.stopPropagation();
+const p = getCanvasPoint(e, $('previewCanvas'));
+const f = previewFrames[currentPreviewIdx];
+if (f && f.lm && f.lm[draggingPointIdx]) {
+f.lm[draggingPointIdx].x = p.x;
+f.lm[draggingPointIdx].y = p.y;
+f.lm[draggingPointIdx].v = 0.95;
+manualEditedFrames[currentPreviewIdx] = true;
+drawPreviewFrame();
+}
+return true;
+}
+
+function onManualUp(e) {
+if (!manualMode || draggingPointIdx < 0) return false;
+e.preventDefault();
+e.stopPropagation();
+draggingPointIdx = -1;
+return true;
+}
+
+// 既存のonCanvasDown/Move/Upより先に手動補正を処理する仕組み
+// (新しいラッパー関数を作る)
+function wrappedDown(e) {
+if (manualMode) {
+if (onManualDown(e)) return;
+}
+onCanvasDown(e);
+}
+function wrappedMove(e) {
+if (manualMode) {
+if (onManualMove(e)) return;
+}
+onCanvasMove(e);
+}
+function wrappedUp(e) {
+if (manualMode) {
+if (onManualUp(e)) return;
+}
+onCanvasUp(e);
+}
+
+// 既存のリスナーを置き換え
+previewCanvasEl.removeEventListener('mousedown', onCanvasDown);
+previewCanvasEl.removeEventListener('mousemove', onCanvasMove);
+previewCanvasEl.removeEventListener('mouseup', onCanvasUp);
+previewCanvasEl.removeEventListener('touchstart', onCanvasDown);
+previewCanvasEl.removeEventListener('touchmove', onCanvasMove);
+previewCanvasEl.removeEventListener('touchend', onCanvasUp);
+previewCanvasEl.addEventListener('mousedown', wrappedDown);
+previewCanvasEl.addEventListener('mousemove', wrappedMove);
+previewCanvasEl.addEventListener('mouseup', wrappedUp);
+previewCanvasEl.addEventListener('touchstart', wrappedDown, { passive: false });
+previewCanvasEl.addEventListener('touchmove', wrappedMove, { passive: false });
+previewCanvasEl.addEventListener('touchend', wrappedUp, { passive: false });
 
 async function analyzeVideo() {
 frames = [];
@@ -2400,11 +2596,93 @@ return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
 
 // ============== フレーム後処理: 誤検出を補正・除外 ==============
 // A: 信頼度チェック / B: 解剖学的妥当性 / C: 時間方向スムージング
-// + 強化版: 足首-膝の上下関係チェック / 手すり除外
+// + 強化版: 足首-膝の上下関係チェック / 手すり除外 / 手動補正アンカー
 function cleanupFrames(frames) {
 if (frames.length < 3) return { frames, quality: { reliable: false, message: 'フレーム数が不足しています' } };
 
 const cleanedFrames = frames.map(f => ({ t: f.t, lm: f.lm.map(p => ({ ...p })) }));
+
+// ===== 手動補正フレームをアンカーとして適用 =====
+// previewFramesの各コマの時刻に最も近い解析フレームに手動補正値を反映
+let manualAnchorCount = 0;
+if (typeof previewFrames !== 'undefined' && previewFrames.length > 0 &&
+typeof manualEditedFrames !== 'undefined') {
+const editedPreviews = previewFrames
+.map((pf, idx) => ({ pf, edited: manualEditedFrames[idx] }))
+.filter(x => x.edited);
+
+if (editedPreviews.length > 0) {
+manualAnchorCount = editedPreviews.length;
+// 各編集済みプレビューフレームについて、最も近い解析フレームを探して上書き
+editedPreviews.forEach(({ pf }) => {
+let nearestIdx = 0;
+let nearestDt = Infinity;
+cleanedFrames.forEach((cf, idx) => {
+const dt = Math.abs(cf.t - pf.t);
+if (dt < nearestDt) { nearestDt = dt; nearestIdx = idx; }
+});
+// この最も近いフレームに手動補正の骨格を適用
+const target = cleanedFrames[nearestIdx];
+pf.lm.forEach((p, lmIdx) => {
+target.lm[lmIdx].x = p.x;
+target.lm[lmIdx].y = p.y;
+target.lm[lmIdx].z = p.z;
+target.lm[lmIdx].v = 0.95;
+target.lm[lmIdx]._manual = true;
+});
+target._isAnchor = true;
+});
+
+// アンカー間のフレームを線形補間で「正しい方向」に引き寄せる
+// 編集済みフレームのインデックスを集める
+const anchorIndices = [];
+cleanedFrames.forEach((f, idx) => {
+if (f._isAnchor) anchorIndices.push(idx);
+});
+
+if (anchorIndices.length >= 1) {
+// 各キー関節について、アンカー間のフレームの位置を補正
+const KEY_JOINTS = [L.NOSE, L.L_SHOULDER, L.R_SHOULDER, L.L_HIP, L.R_HIP,
+L.L_KNEE, L.R_KNEE, L.L_ANKLE, L.R_ANKLE, 13, 14, 15, 16];
+for (const jointIdx of KEY_JOINTS) {
+// 1番目のアンカーより前のフレームは1番目のアンカーで上書き（足の位置のみ）
+// 重要: 上半身と下半身で扱いを変える
+// - 下半身（膝・足首）: アンカーのオフセットを各フレームに適用
+// - 上半身（肩・腰）: アンカーのオフセットを各フレームに適用
+
+// 各フレームでのオフセット計算: アンカーフレームと検出された位置の差を、各フレームに加える
+for (let i = 0; i < cleanedFrames.length; i++) {
+if (cleanedFrames[i]._isAnchor) continue;
+
+// 一番近いアンカーを見つける
+let nearestAnchorIdx = anchorIndices[0];
+let minDist = Math.abs(i - nearestAnchorIdx);
+for (const ai of anchorIndices) {
+const d = Math.abs(i - ai);
+if (d < minDist) { minDist = d; nearestAnchorIdx = ai; }
+}
+
+// 元のフレームでの「アンカーフレームの自動検出位置」と「手動補正位置」の差を記録
+// anchorFrameの元の検出は frames[nearestAnchorIdx].lm[jointIdx] にあるはず
+const origAtAnchor = frames[nearestAnchorIdx].lm[jointIdx];
+const correctedAtAnchor = cleanedFrames[nearestAnchorIdx].lm[jointIdx];
+const offsetX = correctedAtAnchor.x - origAtAnchor.x;
+const offsetY = correctedAtAnchor.y - origAtAnchor.y;
+
+// 距離が遠いほどオフセットの影響を弱める
+const decay = Math.exp(-minDist / 10);
+
+cleanedFrames[i].lm[jointIdx].x += offsetX * decay;
+cleanedFrames[i].lm[jointIdx].y += offsetY * decay;
+// visibility を引き上げる
+if (decay > 0.3) {
+cleanedFrames[i].lm[jointIdx].v = Math.max(cleanedFrames[i].lm[jointIdx].v, 0.7);
+}
+}
+}
+}
+}
+}
 
 // ===== 手すり除外設定の取得 =====
 const handrailMode = $('handrailMode')?.value || 'off';
@@ -2600,9 +2878,25 @@ detail.push(`手すり位置の誤検出を除外: ${handrailExclusionCount}件`
 if (kneeAnkleViolationCount > 0) {
 detail.push(`足首位置の解剖学的異常を補正: ${kneeAnkleViolationCount}件`);
 }
+if (manualAnchorCount > 0) {
+detail.push(`手動補正アンカー: ${manualAnchorCount}コマ適用`);
+}
 const detailStr = detail.length > 0 ? '（' + detail.join(' / ') + '）' : '';
 
-if (correctedRate < 0.10 && lowVisRate < 0.15) {
+// 手動補正がある場合は信頼度を底上げ
+if (manualAnchorCount > 0) {
+if (correctedRate < 0.20 && lowVisRate < 0.40) {
+level = 'good';
+message = '骨格検出は手動補正により改善されました。' + detailStr;
+} else if (correctedRate < 0.40) {
+level = 'fair';
+message = `手動補正済みですが、一部フレームで検出が不安定です（補正率: ${Math.round(correctedRate * 100)}%）${detailStr}。`;
+} else {
+level = 'poor';
+reliable = false;
+message = `手動補正でも検出が安定しません（補正率: ${Math.round(correctedRate * 100)}%）${detailStr}。撮影環境の改善を検討してください。`;
+}
+} else if (correctedRate < 0.10 && lowVisRate < 0.15) {
 level = 'good';
 message = '骨格検出は良好です。' + detailStr;
 } else if (correctedRate < 0.30 && lowVisRate < 0.35) {
