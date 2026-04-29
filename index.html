@@ -994,6 +994,32 @@ color: #888;
 <input type="file" id="fileInput" accept="video/*" />
 </div>
 
+<div class="analysis" id="previewView" style="display: none;">
+<div style="padding: 16px 20px 8px; border-bottom: 1px solid var(--line);">
+<h3 style="font-family:'Fraunces',serif;font-weight:400;font-size:18px;margin-bottom:6px;">骨格検出プレビュー</h3>
+<p style="font-size: 13px; color: var(--ink-soft);">骨格が正しく検出されているか確認してください。問題なければ「解析を開始」、誤検出があれば「範囲を指定」または「撮り直し」してください。</p>
+</div>
+<div class="video-frame" style="position: relative;">
+<canvas id="previewCanvas" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: contain; cursor: crosshair;"></canvas>
+<div id="roiOverlay" style="position: absolute; pointer-events: none; border: 2px solid #52b788; background: rgba(82, 183, 136, 0.1); display: none;"></div>
+</div>
+<div style="padding: 14px 20px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; border-top: 1px solid var(--line);">
+<button class="btn btn-ghost" id="prevFrameBtn" style="padding: 7px 14px; font-size: 12px;">◀ 前のコマ</button>
+<span id="previewFrameLabel" style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--ink-soft);">1 / 5</span>
+<button class="btn btn-ghost" id="nextFrameBtn" style="padding: 7px 14px; font-size: 12px;">次のコマ ▶</button>
+<span style="flex: 1;"></span>
+<button class="btn btn-ghost" id="roiBtn" style="padding: 7px 14px; font-size: 12px;">範囲を指定</button>
+<button class="btn btn-ghost" id="roiClearBtn" style="padding: 7px 14px; font-size: 12px; display: none;">範囲を解除</button>
+</div>
+<div id="roiInstructions" style="display: none; padding: 10px 20px; background: rgba(212, 165, 116, 0.15); border-top: 1px solid var(--line); font-size: 13px; color: var(--ink);">
+画面上で人物が動く範囲を<strong>長方形でドラッグ</strong>してください。手すりや他の人物を含めないように囲みます。
+</div>
+<div style="padding: 14px 20px; display: flex; gap: 8px; flex-wrap: wrap; border-top: 1px solid var(--line);">
+<button class="btn btn-ghost" id="cancelPreviewBtn">撮り直し</button>
+<button class="btn btn-accent" id="startAnalysisBtn" style="flex: 1; min-width: 150px;">この検出で解析を開始</button>
+</div>
+</div>
+
 <div class="analysis" id="analysisView">
 <div class="video-frame">
 <span class="frame-label" id="frameLabel"><span class="dot"></span>解析中</span>
@@ -1926,14 +1952,16 @@ totalTakes = 1;
 totalTakes = parseInt(measureMode);
 }
 $('uploadZone').style.display = 'none';
-$('analysisView').style.display = 'block';
 
 if (!poseLandmarker) {
+$('analysisView').style.display = 'block';
+$('statusText').textContent = 'モデル読み込み中...';
 try { await initPose(); }
 catch (err) {
 showError('モデルの読み込みに失敗しました: ' + err.message);
 return;
 }
+$('analysisView').style.display = 'none';
 }
 
 const url = URL.createObjectURL(file);
@@ -1946,8 +1974,209 @@ $('video').onerror = () => rej(new Error('動画の読み込みに失敗'));
 $('canvas').width = $('video').videoWidth;
 $('canvas').height = $('video').videoHeight;
 
-await analyzeVideo();
+// プレビュー画面を表示
+await showPreviewFrames();
 }
+
+// ============== プレビュー機能（解析前の検出確認） ==============
+let previewFrames = []; // [{t, dataURL, lm}]
+let currentPreviewIdx = 0;
+let userROI = null; // { x, y, w, h } 0-1 normalized, または null
+
+async function showPreviewFrames() {
+$('previewView').style.display = 'block';
+const video = $('video');
+const canvas = $('previewCanvas');
+canvas.width = video.videoWidth;
+canvas.height = video.videoHeight;
+
+// ROIをリセット
+userROI = null;
+$('roiOverlay').style.display = 'none';
+$('roiClearBtn').style.display = 'none';
+$('roiInstructions').style.display = 'none';
+
+// 5フレーム抽出
+previewFrames = [];
+const samples = [0.1, 0.3, 0.5, 0.7, 0.9].map(p => video.duration * p);
+for (let i = 0; i < samples.length; i++) {
+video.currentTime = samples[i];
+await new Promise(res => video.onseeked = res);
+// 骨格検出
+const result = poseLandmarker.detectForVideo(video, performance.now() + i * 100);
+const lm = (result.landmarks && result.landmarks[0])
+? result.landmarks[0].map(p => ({ x: p.x, y: p.y, z: p.z, v: p.visibility != null ? p.visibility : 1 }))
+: null;
+// フレーム画像をdataURLとして保存
+const tempCanvas = document.createElement('canvas');
+tempCanvas.width = video.videoWidth;
+tempCanvas.height = video.videoHeight;
+tempCanvas.getContext('2d').drawImage(video, 0, 0);
+previewFrames.push({ t: samples[i], dataURL: tempCanvas.toDataURL('image/jpeg', 0.7), lm });
+}
+
+currentPreviewIdx = 0;
+drawPreviewFrame();
+}
+
+function drawPreviewFrame() {
+if (previewFrames.length === 0) return;
+const f = previewFrames[currentPreviewIdx];
+const canvas = $('previewCanvas');
+const ctx = canvas.getContext('2d');
+const w = canvas.width, h = canvas.height;
+
+const img = new Image();
+img.onload = () => {
+ctx.clearRect(0, 0, w, h);
+ctx.drawImage(img, 0, 0, w, h);
+
+// 骨格描画
+if (f.lm) {
+const connections = [
+[11,12],[11,13],[13,15],[12,14],[14,16],
+[11,23],[12,24],[23,24],
+[23,25],[25,27],[24,26],[26,28]
+];
+ctx.strokeStyle = '#52b788';
+ctx.lineWidth = 4;
+connections.forEach(([a, b]) => {
+const pa = f.lm[a], pb = f.lm[b];
+if ((pa.v ?? 1) < 0.3 || (pb.v ?? 1) < 0.3) {
+ctx.strokeStyle = '#c1654c'; // 低信頼度は赤系
+} else {
+ctx.strokeStyle = '#52b788';
+}
+ctx.beginPath();
+ctx.moveTo(pa.x * w, pa.y * h);
+ctx.lineTo(pb.x * w, pb.y * h);
+ctx.stroke();
+});
+// ランドマーク点
+[0, 11, 12, 23, 24, 25, 26, 27, 28].forEach(i => {
+const p = f.lm[i];
+ctx.fillStyle = (p.v ?? 1) < 0.3 ? '#c1654c' : '#f4ede0';
+ctx.beginPath();
+ctx.arc(p.x * w, p.y * h, 6, 0, Math.PI * 2);
+ctx.fill();
+ctx.strokeStyle = '#1a2332';
+ctx.lineWidth = 1.5;
+ctx.stroke();
+});
+}
+
+// ROIを描画
+if (userROI) {
+ctx.strokeStyle = '#52b788';
+ctx.lineWidth = 3;
+ctx.setLineDash([8, 4]);
+ctx.strokeRect(userROI.x * w, userROI.y * h, userROI.w * w, userROI.h * h);
+ctx.setLineDash([]);
+// 半透明オーバーレイ（外側）
+ctx.fillStyle = 'rgba(26, 35, 50, 0.4)';
+ctx.fillRect(0, 0, w, userROI.y * h);
+ctx.fillRect(0, (userROI.y + userROI.h) * h, w, h);
+ctx.fillRect(0, userROI.y * h, userROI.x * w, userROI.h * h);
+ctx.fillRect((userROI.x + userROI.w) * w, userROI.y * h, w, userROI.h * h);
+}
+};
+img.src = f.dataURL;
+
+$('previewFrameLabel').textContent = `${currentPreviewIdx + 1} / ${previewFrames.length}`;
+}
+
+$('prevFrameBtn').addEventListener('click', () => {
+currentPreviewIdx = Math.max(0, currentPreviewIdx - 1);
+drawPreviewFrame();
+});
+$('nextFrameBtn').addEventListener('click', () => {
+currentPreviewIdx = Math.min(previewFrames.length - 1, currentPreviewIdx + 1);
+drawPreviewFrame();
+});
+
+$('cancelPreviewBtn').addEventListener('click', () => {
+$('previewView').style.display = 'none';
+$('uploadZone').style.display = 'block';
+previewFrames = [];
+userROI = null;
+});
+
+$('startAnalysisBtn').addEventListener('click', async () => {
+$('previewView').style.display = 'none';
+$('analysisView').style.display = 'block';
+await analyzeVideo();
+});
+
+// ROI（範囲指定）機能
+let roiDrawing = false;
+let roiStart = null;
+
+$('roiBtn').addEventListener('click', () => {
+$('roiInstructions').style.display = 'block';
+$('roiBtn').textContent = '指定中...';
+// ユーザーにキャンバス上でドラッグしてもらう
+});
+
+$('roiClearBtn').addEventListener('click', () => {
+userROI = null;
+$('roiClearBtn').style.display = 'none';
+$('roiBtn').textContent = '範囲を指定';
+$('roiInstructions').style.display = 'none';
+drawPreviewFrame();
+});
+
+// プレビューキャンバスのポインターイベント（マウス・タッチ統合）
+function getCanvasPoint(e, canvas) {
+const rect = canvas.getBoundingClientRect();
+const cx = (e.touches && e.touches[0]) ? e.touches[0].clientX : e.clientX;
+const cy = (e.touches && e.touches[0]) ? e.touches[0].clientY : e.clientY;
+return {
+x: Math.max(0, Math.min(1, (cx - rect.left) / rect.width)),
+y: Math.max(0, Math.min(1, (cy - rect.top) / rect.height))
+};
+}
+
+function onCanvasDown(e) {
+if ($('roiInstructions').style.display !== 'block') return;
+e.preventDefault();
+const p = getCanvasPoint(e, $('previewCanvas'));
+roiStart = p;
+roiDrawing = true;
+}
+
+function onCanvasMove(e) {
+if (!roiDrawing || !roiStart) return;
+e.preventDefault();
+const p = getCanvasPoint(e, $('previewCanvas'));
+const x = Math.min(roiStart.x, p.x);
+const y = Math.min(roiStart.y, p.y);
+const w = Math.abs(p.x - roiStart.x);
+const h = Math.abs(p.y - roiStart.y);
+userROI = { x, y, w, h };
+drawPreviewFrame();
+}
+
+function onCanvasUp(e) {
+if (!roiDrawing) return;
+e.preventDefault();
+roiDrawing = false;
+if (userROI && userROI.w > 0.05 && userROI.h > 0.05) {
+$('roiClearBtn').style.display = 'inline-block';
+$('roiBtn').textContent = '範囲を変更';
+$('roiInstructions').style.display = 'none';
+} else {
+userROI = null;
+}
+drawPreviewFrame();
+}
+
+const previewCanvasEl = $('previewCanvas');
+previewCanvasEl.addEventListener('mousedown', onCanvasDown);
+previewCanvasEl.addEventListener('mousemove', onCanvasMove);
+previewCanvasEl.addEventListener('mouseup', onCanvasUp);
+previewCanvasEl.addEventListener('touchstart', onCanvasDown, { passive: false });
+previewCanvasEl.addEventListener('touchmove', onCanvasMove, { passive: false });
+previewCanvasEl.addEventListener('touchend', onCanvasUp, { passive: false });
 
 async function analyzeVideo() {
 frames = [];
@@ -1976,13 +2205,18 @@ drawingUtils.drawConnectors(result.landmarks[0], PoseLandmarker.POSE_CONNECTIONS
 { color: '#52b788', lineWidth: 3 });
 drawingUtils.drawLandmarks(result.landmarks[0],
 { color: '#f4ede0', fillColor: '#2d6a4f', radius: 4, lineWidth: 1 });
-frames.push({
-t,
-lm: result.landmarks[0].map(p => ({
-x: p.x, y: p.y, z: p.z,
-v: p.visibility != null ? p.visibility : 1
-}))
+// ROI適用: 領域外のランドマークはvisibilityを下げる（後でcleanupFramesが補正対象にする）
+const lmList = result.landmarks[0].map(p => {
+let v = p.visibility != null ? p.visibility : 1;
+if (userROI) {
+if (p.x < userROI.x || p.x > userROI.x + userROI.w ||
+p.y < userROI.y || p.y > userROI.y + userROI.h) {
+v = Math.min(v, 0.1); // ROI外なら強制的に低信頼度
+}
+}
+return { x: p.x, y: p.y, z: p.z, v };
 });
+frames.push({ t, lm: lmList });
 }
 ctx.restore();
 
