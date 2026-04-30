@@ -1015,15 +1015,16 @@ color: #888;
 <div id="roiInstructions" style="display: none; padding: 10px 20px; background: rgba(212, 165, 116, 0.15); border-top: 1px solid var(--line); font-size: 13px; color: var(--ink);">
 画面上で人物が動く範囲を<strong>長方形でドラッグ</strong>してください。手すりや他の人物を含めないように囲みます。
 </div>
-<div id="manualInstructions" style="display: none; padding: 10px 20px; background: rgba(82, 183, 136, 0.1); border-top: 1px solid var(--line); font-size: 13px; color: var(--ink);">
-骨格点を<strong>指でドラッグ</strong>して正しい位置に動かしてください。1コマ目で全体を整えたら「全コマに適用」を押すと他のコマにも反映されます。各コマで足首位置が違う場合は個別に微調整してください。
-<div style="margin-top: 8px; display: flex; gap: 6px; flex-wrap: wrap;">
-<button class="btn btn-accent" id="applyToAllBtn" style="padding: 5px 10px; font-size: 11px;">全コマに適用</button>
-<button class="btn btn-ghost" id="resetManualBtn" style="padding: 5px 10px; font-size: 11px;">このコマをリセット</button>
-<button class="btn btn-ghost" id="zoomResetBtn" style="padding: 5px 10px; font-size: 11px;">拡大をリセット</button>
-<button class="btn btn-ghost" id="exitManualBtn" style="padding: 5px 10px; font-size: 11px;">補正を終了</button>
+<div id="manualInstructions" style="display: none; padding: 12px 20px; background: rgba(82, 183, 136, 0.1); border-top: 1px solid var(--line); font-size: 13px; color: var(--ink);">
+<p style="margin-bottom: 10px;"><strong>使い方:</strong> ① 下のボタンで部位を選ぶ → ② 画面上の正しい位置をタップする</p>
+<div id="jointButtons" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 6px; margin-bottom: 10px;"></div>
+<div style="display: flex; gap: 6px; flex-wrap: wrap; padding-top: 10px; border-top: 1px solid var(--line);">
+<button class="btn btn-accent" id="applyToAllBtn" style="padding: 6px 12px; font-size: 12px;">全コマに適用</button>
+<button class="btn btn-ghost" id="resetManualBtn" style="padding: 6px 12px; font-size: 12px;">このコマをリセット</button>
+<button class="btn btn-ghost" id="zoomResetBtn" style="padding: 6px 12px; font-size: 12px;">拡大をリセット</button>
+<button class="btn btn-ghost" id="exitManualBtn" style="padding: 6px 12px; font-size: 12px;">補正を終了</button>
 </div>
-<p style="font-size: 11px; color: var(--ink-soft); margin-top: 8px;">💡 <strong>2本指でピンチ</strong>すると画面を拡大できます。最大5倍まで拡大可能です。</p>
+<p style="font-size: 11px; color: var(--ink-soft); margin-top: 8px;">💡 <strong>2本指でピンチ</strong>すると画面を拡大できます。</p>
 </div>
 <div style="padding: 14px 20px; display: flex; gap: 8px; flex-wrap: wrap; border-top: 1px solid var(--line);">
 <button class="btn btn-ghost" id="cancelPreviewBtn">撮り直し</button>
@@ -2007,6 +2008,7 @@ zoomScale = 1;
 zoomOffsetX = 0.5;
 zoomOffsetY = 0.5;
 manualMode = false;
+selectedJointIdx = -1;
 manualEditedFrames = [false, false, false, false, false];
 $('roiOverlay').style.display = 'none';
 $('roiClearBtn').style.display = 'none';
@@ -2069,7 +2071,7 @@ const connections = [
 [11,23],[12,24],[23,24],
 [23,25],[25,27],[24,26],[26,28]
 ];
-ctx.lineWidth = manualMode ? 5 : 4;
+ctx.lineWidth = manualMode ? Math.max(8, w * 0.008) : Math.max(4, w * 0.004);
 connections.forEach(([a, b]) => {
 const pa = f.lm[a], pb = f.lm[b];
 if (!pa || !pb) return;
@@ -2085,47 +2087,56 @@ ctx.lineTo(db.x * w, db.y * h);
 ctx.stroke();
 });
 
-// ランドマーク点
-const pointRadius = manualMode ? 14 : 6;
+// ランドマーク点（画像解像度に応じてサイズ調整）
+// 画像幅の % で指定: 通常 0.8%、手動モード 2.5%
+const pointRadius = manualMode ? Math.max(18, w * 0.025) : Math.max(6, w * 0.008);
+const fontSize = Math.max(28, Math.round(w * 0.04)); // 画像幅の4%、最低28px
 const pointsToDraw = manualMode ? MANUAL_POINTS : [0, 11, 12, 23, 24, 25, 26, 27, 28];
 pointsToDraw.forEach(i => {
 const p = f.lm[i];
 if (!p) return;
 const dp = toDisp(p);
-// 表示範囲外は描画しない（少しだけマージン）
 if (dp.x < -0.1 || dp.x > 1.1 || dp.y < -0.1 || dp.y > 1.1) return;
 
 const lowVis = (p.v ?? 1) < 0.3;
+const isSelected = manualMode && selectedJointIdx === i;
+
 if (manualMode) {
-ctx.fillStyle = 'rgba(82, 183, 136, 0.3)';
+// 選択中はオレンジハロー、それ以外は緑ハロー
+ctx.fillStyle = isSelected ? 'rgba(212, 165, 116, 0.6)' : 'rgba(82, 183, 136, 0.3)';
 ctx.beginPath();
-ctx.arc(dp.x * w, dp.y * h, pointRadius + 5, 0, Math.PI * 2);
+ctx.arc(dp.x * w, dp.y * h, pointRadius + (isSelected ? 14 : 8), 0, Math.PI * 2);
 ctx.fill();
 }
-ctx.fillStyle = lowVis ? '#c1654c' : (manualMode ? '#52b788' : '#f4ede0');
+ctx.fillStyle = isSelected ? '#d4a574' : (lowVis ? '#c1654c' : (manualMode ? '#52b788' : '#f4ede0'));
 ctx.beginPath();
 ctx.arc(dp.x * w, dp.y * h, pointRadius, 0, Math.PI * 2);
 ctx.fill();
 ctx.strokeStyle = '#1a2332';
-ctx.lineWidth = 2.5;
+ctx.lineWidth = isSelected ? 4 : 3;
 ctx.stroke();
 
-// 手動補正モードのラベル（大きく・背景付き）
+// 手動補正モードのラベル（画面解像度比例の大きさ）
 if (manualMode && POINT_LABELS[i]) {
 const label = POINT_LABELS[i];
-ctx.font = 'bold 22px sans-serif';
+ctx.font = `bold ${fontSize}px sans-serif`;
 ctx.textAlign = 'left';
 ctx.textBaseline = 'middle';
-const textX = dp.x * w + pointRadius + 6;
-const textY = dp.y * h;
-// 背景
+const padding = fontSize * 0.4;
+// ラベルが画面右端を超えないよう左寄せ
+let textX = dp.x * w + pointRadius + 8;
 const metrics = ctx.measureText(label);
-ctx.fillStyle = 'rgba(244, 237, 224, 0.9)';
-ctx.fillRect(textX - 4, textY - 14, metrics.width + 8, 28);
+if (textX + metrics.width + padding * 2 > w) {
+textX = dp.x * w - pointRadius - 8 - metrics.width;
+}
+const textY = dp.y * h;
+// 背景（白＋枠）
+const bgH = fontSize * 1.4;
+ctx.fillStyle = 'rgba(244, 237, 224, 0.95)';
+ctx.fillRect(textX - padding, textY - bgH / 2, metrics.width + padding * 2, bgH);
 ctx.strokeStyle = '#1a2332';
-ctx.lineWidth = 1;
-ctx.strokeRect(textX - 4, textY - 14, metrics.width + 8, 28);
-// テキスト
+ctx.lineWidth = 2;
+ctx.strokeRect(textX - padding, textY - bgH / 2, metrics.width + padding * 2, bgH);
 ctx.fillStyle = '#1a2332';
 ctx.fillText(label, textX, textY);
 }
@@ -2133,22 +2144,44 @@ ctx.fillText(label, textX, textY);
 
 if (manualMode && manualEditedFrames[currentPreviewIdx]) {
 ctx.fillStyle = '#2d6a4f';
-ctx.font = 'bold 16px sans-serif';
+ctx.font = `bold ${Math.max(20, Math.round(w * 0.025))}px sans-serif`;
 ctx.textAlign = 'left';
 ctx.textBaseline = 'top';
 ctx.fillText('● 手動補正済み', 12, 12);
+}
+
+// 選択中の関節を上部中央に大きく表示
+if (manualMode && selectedJointIdx >= 0 && POINT_LABELS[selectedJointIdx]) {
+const fs = Math.max(28, Math.round(w * 0.04));
+const label = `「${POINT_LABELS[selectedJointIdx]}」を配置中 — 画面の正しい位置をタップ`;
+ctx.font = `bold ${fs}px sans-serif`;
+ctx.textAlign = 'center';
+ctx.textBaseline = 'top';
+const metrics = ctx.measureText(label);
+const padding = fs * 0.4;
+const bgW = metrics.width + padding * 2;
+const bgH = fs * 1.4;
+const bgX = w / 2 - bgW / 2;
+ctx.fillStyle = 'rgba(212, 165, 116, 0.95)';
+ctx.fillRect(bgX, 8, bgW, bgH);
+ctx.strokeStyle = '#1a2332';
+ctx.lineWidth = 2;
+ctx.strokeRect(bgX, 8, bgW, bgH);
+ctx.fillStyle = '#1a2332';
+ctx.fillText(label, w / 2, 8 + padding * 0.6);
 }
 }
 
 // ズーム率の表示
 if (zoomScale > 1.05) {
-ctx.fillStyle = 'rgba(26, 35, 50, 0.7)';
-ctx.fillRect(w - 120, 10, 110, 32);
+const zfs = Math.max(20, Math.round(w * 0.025));
+ctx.fillStyle = 'rgba(26, 35, 50, 0.75)';
+ctx.fillRect(w - zfs * 8, 12, zfs * 7, zfs * 2);
 ctx.fillStyle = '#f4ede0';
-ctx.font = 'bold 14px sans-serif';
+ctx.font = `bold ${zfs}px sans-serif`;
 ctx.textAlign = 'left';
 ctx.textBaseline = 'middle';
-ctx.fillText(`${zoomScale.toFixed(1)}× 拡大中`, w - 110, 26);
+ctx.fillText(`${zoomScale.toFixed(1)}× 拡大中`, w - zfs * 7.5, 12 + zfs);
 }
 
 // ROIを描画（画像座標 → 表示座標変換）
@@ -2263,7 +2296,8 @@ previewCanvasEl.addEventListener('touchend', onCanvasUp, { passive: false });
 // ============== 手動骨格補正モード ==============
 let manualMode = false;
 let manualEditedFrames = [false, false, false, false, false]; // 各プレビュー枠が編集済みか
-let draggingPointIdx = -1; // 現在ドラッグ中のランドマーク番号
+let draggingPointIdx = -1; // 旧ドラッグ用（互換性のため残置）
+let selectedJointIdx = -1; // 現在選択されている関節（ボタンで選んだもの）
 
 // ============== ピンチズーム状態 ==============
 // プレビューキャンバスの表示変換: 拡大率と平行移動
@@ -2299,15 +2333,64 @@ manualMode = true;
 $('manualInstructions').style.display = 'block';
 $('roiInstructions').style.display = 'none';
 $('manualBtn').textContent = '補正中...';
+buildJointButtons();
 drawPreviewFrame();
 });
 
 $('exitManualBtn').addEventListener('click', () => {
 manualMode = false;
+selectedJointIdx = -1;
 $('manualInstructions').style.display = 'none';
 $('manualBtn').textContent = '手動補正';
 drawPreviewFrame();
 });
+
+// 関節選択ボタンを動的生成
+function buildJointButtons() {
+const container = $('jointButtons');
+// 表示順序: 上半身→下半身、左→右
+const order = [
+[0, '頭'],
+[11, '左肩'], [12, '右肩'],
+[13, '左肘'], [14, '右肘'],
+[15, '左手首'], [16, '右手首'],
+[23, '左腰'], [24, '右腰'],
+[25, '左膝'], [26, '右膝'],
+[27, '左足首'], [28, '右足首']
+];
+container.innerHTML = order.map(([idx, label]) => `
+<button class="joint-btn" data-jidx="${idx}"
+style="padding: 8px 4px; border: 1.5px solid var(--line); background: var(--paper); color: var(--ink);
+font-size: 13px; font-weight: 500; border-radius: 3px; cursor: pointer; transition: all 0.15s;">
+${label}
+</button>
+`).join('');
+
+container.querySelectorAll('.joint-btn').forEach(b => {
+b.addEventListener('click', () => {
+const idx = parseInt(b.dataset.jidx);
+selectedJointIdx = (selectedJointIdx === idx) ? -1 : idx;
+updateJointButtonStyles();
+drawPreviewFrame();
+});
+});
+updateJointButtonStyles();
+}
+
+function updateJointButtonStyles() {
+document.querySelectorAll('.joint-btn').forEach(b => {
+const idx = parseInt(b.dataset.jidx);
+if (idx === selectedJointIdx) {
+b.style.background = 'var(--accent)';
+b.style.color = 'var(--paper)';
+b.style.borderColor = 'var(--accent)';
+} else {
+b.style.background = 'var(--paper)';
+b.style.color = 'var(--ink)';
+b.style.borderColor = 'var(--line)';
+}
+});
+}
 
 $('zoomResetBtn').addEventListener('click', resetZoom);
 
@@ -2351,22 +2434,43 @@ function findNearestPoint(canvas, e) {
 const f = previewFrames[currentPreviewIdx];
 if (!f || !f.lm) return -1;
 const p = getCanvasPoint(e, canvas); // 表示座標 (0-1)
-// 画像座標に変換: 表示座標 -> 画像座標
 const imgPt = displayToImage(p);
-let nearestIdx = -1;
-let nearestDist = Infinity;
+
+// 末端関節（足首・手首）に優先順位を付ける
+// 同じくらいの距離なら末端を優先する
+const PRIORITY = {
+27: 1, 28: 1, // 足首（最優先）
+15: 1, 16: 1, // 手首
+25: 2, 26: 2, // 膝
+13: 2, 14: 2, // 肘
+23: 3, 24: 3, // 腰
+11: 3, 12: 3, // 肩
+0: 3 // 鼻
+};
+
+// タップ範囲: 画面の8%以内（拡大率で補正）。前は6%だったが少し広げる
+const threshold = 0.10 / zoomScale;
+
+// 候補を全部集める
+const candidates = [];
 for (const idx of MANUAL_POINTS) {
 const lm = f.lm[idx];
 if (!lm) continue;
 const d = Math.sqrt((lm.x - imgPt.x) ** 2 + (lm.y - imgPt.y) ** 2);
-if (d < nearestDist) {
-nearestDist = d;
-nearestIdx = idx;
+if (d < threshold) {
+candidates.push({ idx, dist: d, priority: PRIORITY[idx] || 4 });
 }
 }
-// タップ範囲: 拡大すれば実距離が小さくなるので閾値を拡大率で補正
-const threshold = 0.06 / zoomScale;
-return nearestDist < threshold ? nearestIdx : -1;
+
+if (candidates.length === 0) return -1;
+
+// 優先度の高い末端関節を優先、同じ優先度なら近いもの
+candidates.sort((a, b) => {
+if (a.priority !== b.priority) return a.priority - b.priority;
+return a.dist - b.dist;
+});
+
+return candidates[0].idx;
 }
 
 // 表示座標 (0-1) → 画像座標 (0-1) 変換
@@ -2402,18 +2506,29 @@ drawPreviewFrame();
 
 function onManualDown(e) {
 if (!manualMode) return false;
+// ボタンで関節が選択されていない場合は何もしない（通常のタップは無視）
+if (selectedJointIdx < 0) return false;
 e.preventDefault();
 e.stopPropagation();
-const idx = findNearestPoint($('previewCanvas'), e);
-if (idx >= 0) {
-draggingPointIdx = idx;
-return true;
+
+// タップした位置に選択された関節を配置
+const p = getCanvasPoint(e, $('previewCanvas'));
+const imgPt = displayToImage(p);
+const f = previewFrames[currentPreviewIdx];
+if (f && f.lm && f.lm[selectedJointIdx]) {
+f.lm[selectedJointIdx].x = Math.max(0, Math.min(1, imgPt.x));
+f.lm[selectedJointIdx].y = Math.max(0, Math.min(1, imgPt.y));
+f.lm[selectedJointIdx].v = 0.95;
+manualEditedFrames[currentPreviewIdx] = true;
+drawPreviewFrame();
 }
-return false;
+// ドラッグも継続できるようにフラグを立てる
+draggingPointIdx = selectedJointIdx;
+return true;
 }
 
 function onManualMove(e) {
-if (!manualMode || draggingPointIdx < 0) return false;
+if (!manualMode || draggingPointIdx < 0 || selectedJointIdx < 0) return false;
 e.preventDefault();
 e.stopPropagation();
 const p = getCanvasPoint(e, $('previewCanvas'));
