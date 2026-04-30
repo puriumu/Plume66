@@ -879,6 +879,126 @@ font-size: 9px;
 color: #888;
 }
 }
+
+/* 総合レポート印刷モード時のスタイル */
+body.summary-print-mode > div.container,
+body.summary-print-mode .grain {
+display: none !important;
+}
+body.summary-print-mode #summaryReportArea {
+display: block !important;
+background: white;
+color: #1a2332;
+font-family: ‘Hiragino Sans’, ‘Yu Gothic’, sans-serif;
+line-height: 1.6;
+max-width: 800px;
+margin: 0 auto;
+padding: 20px;
+}
+#summaryReportArea .report-header {
+border-bottom: 3px solid #1a2332;
+padding-bottom: 12px;
+margin-bottom: 20px;
+}
+#summaryReportArea .report-header h1 {
+font-family: ‘Fraunces’, serif;
+font-weight: 400;
+font-size: 26px;
+margin: 0 0 6px 0;
+}
+#summaryReportArea .report-header .subtitle {
+font-size: 13px;
+color: #555;
+}
+#summaryReportArea .summary-grid {
+display: grid;
+grid-template-columns: repeat(4, 1fr);
+gap: 10px;
+margin: 14px 0 8px;
+}
+#summaryReportArea .summary-card {
+border: 1px solid #ddd;
+background: #f9f5ec;
+padding: 12px;
+border-radius: 3px;
+text-align: center;
+}
+#summaryReportArea .summary-label {
+font-family: monospace;
+font-size: 9px;
+letter-spacing: 0.1em;
+color: #666;
+text-transform: uppercase;
+margin-bottom: 4px;
+}
+#summaryReportArea .summary-value {
+font-family: ‘Fraunces’, serif;
+font-size: 36px;
+font-weight: 300;
+line-height: 1;
+}
+#summaryReportArea .info-row {
+display: flex;
+gap: 20px;
+margin-bottom: 14px;
+font-size: 13px;
+flex-wrap: wrap;
+}
+#summaryReportArea .info-row strong {
+min-width: 80px;
+display: inline-block;
+}
+#summaryReportArea h2 {
+font-family: ‘Fraunces’, serif;
+font-weight: 400;
+font-size: 18px;
+margin: 24px 0 10px;
+border-bottom: 2px solid #1a2332;
+padding-bottom: 6px;
+page-break-after: avoid;
+}
+#summaryReportArea table {
+width: 100%;
+border-collapse: collapse;
+font-size: 13px;
+}
+#summaryReportArea table thead tr { background: #ebe1cf; }
+#summaryReportArea table th, #summaryReportArea table td {
+padding: 8px 12px;
+border-bottom: 1px solid #ddd;
+}
+#summaryReportArea .advice-block {
+margin-bottom: 16px;
+page-break-inside: avoid;
+}
+#summaryReportArea .advice-num {
+font-family: ‘Fraunces’, serif;
+font-style: italic;
+font-size: 24px;
+color: #2d6a4f;
+}
+#summaryReportArea .report-footer {
+margin-top: 30px;
+padding-top: 12px;
+border-top: 1px solid #ddd;
+font-size: 10px;
+color: #888;
+display: flex;
+justify-content: space-between;
+}
+/* 印刷時の対応 */
+@media print {
+body.summary-print-mode {
+background: white !important;
+background-image: none !important;
+}
+body.summary-print-mode #summaryReportArea {
+padding: 0;
+}
+body.summary-print-mode .no-print {
+display: none !important;
+}
+}
 </style>
 
 </head>
@@ -1213,6 +1333,10 @@ stroke-dasharray="615.75" stroke-dashoffset="615.75" />
 <span><em>walk well, live well.</em></span>
 </footer>
 </div>
+
+<!-- 印刷専用エリア（普段は非表示・印刷時のみ表示） -->
+
+<div id="summaryReportArea" style="display: none;"></div>
 
 <!-- profile modal: app-wide settings -->
 
@@ -4732,9 +4856,285 @@ modal.remove();
 });
 }
 
-// ============== 総合レポート印刷（一時的に簡易版） ==============
+// ============== 総合レポート印刷 ==============
 function printSummaryReport(u) {
-alert("総合レポート印刷機能は調整中です。各測定の結果画面から個別に印刷してください。");
+const history = u.history || [];
+if (history.length === 0) {
+alert('測定データがありません');
+return;
+}
+
+// 通常測定 / TUG / CS-30 を分類
+const normalRecords = history.filter(h => !h.isTug && !h.isCS30);
+const tugRecords = history.filter(h => h.isTug);
+const cs30Records = history.filter(h => h.isCS30);
+
+// 期間
+const firstDate = new Date(history[0].timestamp);
+const lastDate = new Date(history[history.length - 1].timestamp);
+const periodDays = Math.ceil((lastDate - firstDate) / (1000 * 60 * 60 * 24));
+
+// ----- 通常測定の集計 -----
+let normalSummaryHTML = '';
+let metricSummaryHTML = '';
+let adviceSummaryHTML = '';
+if (normalRecords.length > 0) {
+const overallScores = normalRecords.map(r => r.overall);
+const avgOverall = Math.round(mean(overallScores));
+const maxOverall = Math.max(...overallScores);
+const latestOverall = overallScores[overallScores.length - 1];
+const firstOverall = overallScores[0];
+const totalChange = latestOverall - firstOverall;
+
+normalSummaryHTML = `
+<h2>通常測定の総合スコア</h2>
+<div class="summary-grid">
+<div class="summary-card">
+<div class="summary-label">最新スコア</div>
+<div class="summary-value">${latestOverall}</div>
+</div>
+<div class="summary-card">
+<div class="summary-label">平均スコア</div>
+<div class="summary-value">${avgOverall}</div>
+</div>
+<div class="summary-card">
+<div class="summary-label">最高スコア</div>
+<div class="summary-value">${maxOverall}</div>
+</div>
+<div class="summary-card">
+<div class="summary-label">期間内変化</div>
+<div class="summary-value" style="color: ${totalChange >= 0 ? '#2d6a4f' : '#c1654c'}">
+${totalChange >= 0 ? '+' : ''}${totalChange}
+</div>
+</div>
+</div>
+`;
+
+// 項目別スコア集計
+const metricKeys = ['posture', 'head', 'pelvic', 'symmetry', 'rhythm', 'sway', 'shoulder', 'spine'];
+const metricLabels = {
+posture: '姿勢の直立度', head: '頭部位置', pelvic: '骨盤の水平性',
+symmetry: '左右対称性', rhythm: 'リズムの安定性',
+sway: '骨盤の左右動揺', shoulder: '肩の左右差', spine: '脊柱の側屈'
+};
+const metricRows = [];
+const metricAvgs = {};
+for (const key of metricKeys) {
+const valuesWithKey = normalRecords
+.map(r => (r.metrics || []).find(m => m.key === key)?.score)
+.filter(v => v != null);
+if (valuesWithKey.length === 0) continue;
+metricAvgs[key] = mean(valuesWithKey);
+
+const first = valuesWithKey[0];
+const last = valuesWithKey[valuesWithKey.length - 1];
+const avg = Math.round(mean(valuesWithKey));
+const change = last - first;
+const changeColor = change >= 0 ? '#2d6a4f' : '#c1654c';
+const changeStr = (change >= 0 ? '+' : '') + change;
+
+metricRows.push(`
+<tr>
+<td style="font-weight:500;">${metricLabels[key]}</td>
+<td style="text-align:right;">${first}</td>
+<td style="text-align:right;">${last}</td>
+<td style="text-align:right;">${avg}</td>
+<td style="text-align:right;color:${changeColor};font-weight:500;">${changeStr}</td>
+</tr>
+`);
+}
+
+if (metricRows.length > 0) {
+metricSummaryHTML = `
+<h2>項目別スコア集計</h2>
+<table>
+<thead>
+<tr>
+<th style="text-align:left;">項目</th>
+<th style="text-align:right;">初回</th>
+<th style="text-align:right;">最新</th>
+<th style="text-align:right;">平均</th>
+<th style="text-align:right;">変化</th>
+</tr>
+</thead>
+<tbody>${metricRows.join('')}</tbody>
+</table>
+`;
+}
+
+// 処方箋（最も低い項目TOP3）
+const sortedKeys = Object.keys(metricAvgs).sort((a, b) => metricAvgs[a] - metricAvgs[b]).slice(0, 3);
+const adviceItems = sortedKeys.map((key, idx) => {
+const advice = ADVICE_BANK[key];
+if (!advice) return '';
+return `
+<div class="advice-block">
+<div style="display:flex;align-items:baseline;gap:8px;margin-bottom:4px;">
+<span class="advice-num">0${idx + 1}</span>
+<h3 style="font-family:'Fraunces',serif;font-weight:500;font-size:16px;margin:0;">${advice.title}</h3>
+<span style="font-size:11px;color:#666;">（平均スコア: ${Math.round(metricAvgs[key])}点）</span>
+</div>
+<p style="font-size:13px;line-height:1.6;color:#333;margin:0 0 4px 0;">${advice.body}</p>
+${advice.youtube ? `<p style="font-size:10px;color:#2d6a4f;margin:0;">参考動画: ${advice.youtube}</p>` : ''}
+</div>
+`;
+}).filter(Boolean);
+
+if (adviceItems.length > 0) {
+adviceSummaryHTML = `<h2>具体的な処方箋（優先度順）</h2>${adviceItems.join('')}`;
+}
+}
+
+// ----- TUG集計 -----
+let tugSummaryHTML = '';
+if (tugRecords.length > 0) {
+const times = tugRecords.map(r => r.tugTotalTime);
+const avgTime = (mean(times)).toFixed(1);
+const minTime = Math.min(...times).toFixed(1);
+const latestTime = times[times.length - 1].toFixed(1);
+tugSummaryHTML = `
+<h2>TUGテスト集計</h2>
+<div class="summary-grid">
+<div class="summary-card">
+<div class="summary-label">最新</div>
+<div class="summary-value" style="font-size:28px;">${latestTime}<span style="font-size:14px;">秒</span></div>
+</div>
+<div class="summary-card">
+<div class="summary-label">最速</div>
+<div class="summary-value" style="font-size:28px;">${minTime}<span style="font-size:14px;">秒</span></div>
+</div>
+<div class="summary-card">
+<div class="summary-label">平均</div>
+<div class="summary-value" style="font-size:28px;">${avgTime}<span style="font-size:14px;">秒</span></div>
+</div>
+<div class="summary-card">
+<div class="summary-label">測定回数</div>
+<div class="summary-value" style="font-size:28px;">${tugRecords.length}</div>
+</div>
+</div>
+`;
+}
+
+// ----- CS-30集計 -----
+let cs30SummaryHTML = '';
+if (cs30Records.length > 0) {
+const counts = cs30Records.map(r => r.cs30Count);
+const avgCount = Math.round(mean(counts));
+const maxCount = Math.max(...counts);
+const latestCount = counts[counts.length - 1];
+cs30SummaryHTML = `
+<h2>CS-30（15秒版）集計</h2>
+<div class="summary-grid">
+<div class="summary-card">
+<div class="summary-label">最新</div>
+<div class="summary-value" style="font-size:28px;">${latestCount}<span style="font-size:14px;">回</span></div>
+</div>
+<div class="summary-card">
+<div class="summary-label">最高</div>
+<div class="summary-value" style="font-size:28px;">${maxCount}<span style="font-size:14px;">回</span></div>
+</div>
+<div class="summary-card">
+<div class="summary-label">平均</div>
+<div class="summary-value" style="font-size:28px;">${avgCount}<span style="font-size:14px;">回</span></div>
+</div>
+<div class="summary-card">
+<div class="summary-label">測定回数</div>
+<div class="summary-value" style="font-size:28px;">${cs30Records.length}</div>
+</div>
+</div>
+`;
+}
+
+// 担当スタッフ
+const staffSet = new Set(history.map(h => h.staff).filter(Boolean));
+const staffStr = staffSet.size > 0 ? Array.from(staffSet).join(', ') : '記録なし';
+
+// 利用者プロファイル
+const profileItems = [];
+if (u.age) profileItems.push(u.age + '歳');
+if (u.gender === 'm') profileItems.push('男性');
+else if (u.gender === 'f') profileItems.push('女性');
+if (u.note) profileItems.push(u.note);
+const profileStr = profileItems.join(' · ');
+
+// 直近の測定記録
+const recentRecords = [...history].reverse().slice(0, 30);
+const recordRows = recentRecords.map(h => {
+let scoreCol;
+if (h.isTug) scoreCol = h.tugTotalTime + '秒';
+else if (h.isCS30) scoreCol = h.cs30Count + '回';
+else scoreCol = h.overall + '点';
+const vp = h.isTug ? 'TUG' : (h.isCS30 ? 'CS-30' : ({'side':'横','front':'前','back':'背面','tm_side':'TM横','tm_front':'TM前','tm_back':'TM背面','multi':'3方向'}[h.viewpoint] || h.viewpoint));
+return `
+<tr>
+<td style="font-size:11px;">${new Date(h.timestamp).toLocaleString('ja-JP', {year:'numeric',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})}</td>
+<td style="font-size:11px;">${vp}</td>
+<td style="font-size:11px;text-align:right;font-weight:500;">${scoreCol}</td>
+<td style="font-size:11px;">${h.staff || '—'}</td>
+<td style="font-size:11px;">${h.note || ''}</td>
+</tr>
+`;
+}).join('');
+
+// レポート全体のHTML
+const reportHTML = `
+<div class="no-print" style="text-align:center;margin:0 0 20px 0;padding:14px;background:#ebe1cf;border:1px solid #ddd;border-radius:4px;">
+<button id="doPrintBtn" style="background:#2d6a4f;color:white;border:none;padding:12px 24px;font-size:14px;cursor:pointer;border-radius:3px;margin:0 6px;">📄 印刷 / PDF保存</button>
+<button id="closeReportBtn" style="background:#888;color:white;border:none;padding:12px 24px;font-size:14px;cursor:pointer;border-radius:3px;margin:0 6px;">閉じる</button>
+</div>
+<div class="report-header">
+<h1>歩行解析 総合レポート</h1>
+<div class="subtitle">Gait Lab — Comprehensive Report</div>
+</div>
+<div class="info-row">
+<div><strong>利用者:</strong> ${escapeHtml(u.name)}</div>
+<div><strong>属性:</strong> ${escapeHtml(profileStr) || '—'}</div>
+</div>
+<div class="info-row">
+<div><strong>測定期間:</strong> ${firstDate.toLocaleDateString('ja-JP')} 〜 ${lastDate.toLocaleDateString('ja-JP')} (${periodDays}日間)</div>
+<div><strong>測定回数:</strong> ${history.length}回</div>
+</div>
+<div class="info-row">
+<div><strong>担当スタッフ:</strong> ${escapeHtml(staffStr)}</div>
+<div><strong>レポート作成日:</strong> ${new Date().toLocaleDateString('ja-JP')}</div>
+</div>
+${normalSummaryHTML}
+${metricSummaryHTML}
+${tugSummaryHTML}
+${cs30SummaryHTML}
+${adviceSummaryHTML}
+<h2>直近の測定記録（最新30件）</h2>
+<table>
+<thead>
+<tr>
+<th style="text-align:left;font-size:11px;">日時</th>
+<th style="text-align:left;font-size:11px;">種別</th>
+<th style="text-align:right;font-size:11px;">結果</th>
+<th style="text-align:left;font-size:11px;">担当</th>
+<th style="text-align:left;font-size:11px;">メモ</th>
+</tr>
+</thead>
+<tbody>${recordRows}</tbody>
+</table>
+<div class="report-footer">
+<span>GAIT LAB / リハビリ支援版</span>
+<span>${new Date().toLocaleString('ja-JP')} 出力</span>
+</div>
+`;
+
+// レポートエリアに書き込み、印刷モードを有効化
+$('summaryReportArea').innerHTML = reportHTML;
+document.body.classList.add('summary-print-mode');
+window.scrollTo(0, 0);
+
+// ボタンイベント
+document.getElementById('doPrintBtn').addEventListener('click', () => {
+window.print();
+});
+document.getElementById('closeReportBtn').addEventListener('click', () => {
+document.body.classList.remove('summary-print-mode');
+$('summaryReportArea').innerHTML = '';
+});
 }
 
 
