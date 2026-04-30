@@ -4732,406 +4732,21 @@ modal.remove();
 });
 }
 
-// ============== 総合レポート印刷 ==============
+// ============== 総合レポート印刷（一時的に簡易版） ==============
 function printSummaryReport(u) {
-const history = u.history || [];
-if (history.length === 0) {
-alert('測定データがありません');
-return;
+alert("総合レポート印刷機能は調整中です。各測定の結果画面から個別に印刷してください。");
 }
 
-// 通常測定 / TUG / CS-30 を分類
-const normalRecords = history.filter(h => !h.isTug && !h.isCS30);
-const tugRecords = history.filter(h => h.isTug);
-const cs30Records = history.filter(h => h.isCS30);
-
-// 期間
-const firstDate = new Date(history[0].timestamp);
-const lastDate = new Date(history[history.length - 1].timestamp);
-const periodDays = Math.ceil((lastDate - firstDate) / (1000 * 60 * 60 * 24));
-
-// 通常測定の集計
-let normalSummary = '';
-let metricSummary = '';
-let adviceSummary = '';
-if (normalRecords.length > 0) {
-const overallScores = normalRecords.map(r => r.overall);
-const avgOverall = Math.round(mean(overallScores));
-const maxOverall = Math.max(...overallScores);
-const minOverall = Math.min(...overallScores);
-const latestOverall = overallScores[overallScores.length - 1];
-const firstOverall = overallScores[0];
-const totalChange = latestOverall - firstOverall;
-
-normalSummary = `
-<div class="summary-grid">
-<div class="summary-card">
-<div class="summary-label">最新スコア</div>
-<div class="summary-value">${latestOverall}</div>
-</div>
-<div class="summary-card">
-<div class="summary-label">平均スコア</div>
-<div class="summary-value">${avgOverall}</div>
-</div>
-<div class="summary-card">
-<div class="summary-label">最高スコア</div>
-<div class="summary-value">${maxOverall}</div>
-</div>
-<div class="summary-card">
-<div class="summary-label">期間内変化</div>
-<div class="summary-value" style="color: ${totalChange >= 0 ? '#2d6a4f' : '#c1654c'}">
-${totalChange >= 0 ? '+' : ''}${totalChange}
-</div>
-</div>
-</div>
-`;
-
-// 項目別スコア集計
-const metricKeys = ['posture', 'head', 'pelvic', 'symmetry', 'rhythm', 'sway', 'shoulder', 'spine'];
-const metricLabels = {
-posture: '姿勢の直立度', head: '頭部位置', pelvic: '骨盤の水平性',
-symmetry: '左右対称性', rhythm: 'リズムの安定性',
-sway: '骨盤の左右動揺', shoulder: '肩の左右差', spine: '脊柱の側屈'
-};
-const metricRows = [];
-for (const key of metricKeys) {
-const valuesWithKey = normalRecords
-.map(r => r.metrics?.find(m => m.key === key)?.score)
-.filter(v => v != null);
-if (valuesWithKey.length === 0) continue;
-
-const first = valuesWithKey[0];
-const last = valuesWithKey[valuesWithKey.length - 1];
-const avg = Math.round(mean(valuesWithKey));
-const change = last - first;
-const changeColor = change >= 0 ? '#2d6a4f' : '#c1654c';
-const changeStr = (change >= 0 ? '+' : '') + change;
-
-metricRows.push(`
-<tr>
-<td style="padding:8px 12px;border-bottom:1px solid #ddd;font-weight:500;">${metricLabels[key]}</td>
-<td style="padding:8px 12px;border-bottom:1px solid #ddd;text-align:right;">${first}</td>
-<td style="padding:8px 12px;border-bottom:1px solid #ddd;text-align:right;">${last}</td>
-<td style="padding:8px 12px;border-bottom:1px solid #ddd;text-align:right;">${avg}</td>
-<td style="padding:8px 12px;border-bottom:1px solid #ddd;text-align:right;color:${changeColor};font-weight:500;">${changeStr}</td>
-</tr>
-`);
-}
-
-if (metricRows.length > 0) {
-metricSummary = `
-<h2 style="font-family:'Fraunces',serif;font-weight:400;font-size:18px;margin:24px 0 10px;border-bottom:2px solid #1a2332;padding-bottom:6px;">項目別スコア集計</h2>
-<table style="width:100%;border-collapse:collapse;font-size:13px;">
-<thead>
-<tr style="background:#ebe1cf;">
-<th style="padding:8px 12px;text-align:left;">項目</th>
-<th style="padding:8px 12px;text-align:right;">初回</th>
-<th style="padding:8px 12px;text-align:right;">最新</th>
-<th style="padding:8px 12px;text-align:right;">平均</th>
-<th style="padding:8px 12px;text-align:right;">変化</th>
-</tr>
-</thead>
-<tbody>${metricRows.join('')}</tbody>
-</table>
-`;
-}
-
-// 処方箋 - 全期間で最も低い項目TOP3に対するアドバイス
-const metricAvgs = {};
-for (const key of metricKeys) {
-const vals = normalRecords.map(r => r.metrics?.find(m => m.key === key)?.score).filter(v => v != null);
-if (vals.length > 0) metricAvgs[key] = mean(vals);
-}
-const sortedKeys = Object.keys(metricAvgs).sort((a, b) => metricAvgs[a] - metricAvgs[b]).slice(0, 3);
-
-const adviceItems = sortedKeys.map((key, idx) => {
-const advice = ADVICE_BANK[key];
-if (!advice) return '';
-return `
-<div style="margin-bottom:16px;page-break-inside:avoid;">
-<div style="display:flex;align-items:baseline;gap:8px;margin-bottom:4px;">
-<span style="font-family:'Fraunces',serif;font-style:italic;font-size:24px;color:#2d6a4f;">0${idx + 1}</span>
-<h3 style="font-family:'Fraunces',serif;font-weight:500;font-size:16px;margin:0;">${advice.title}</h3>
-<span style="font-size:11px;color:#666;">（平均スコア: ${Math.round(metricAvgs[key])}点）</span>
-</div>
-<p style="font-size:13px;line-height:1.6;color:#333;margin:0 0 4px 0;">${advice.body}</p>
-${advice.youtube ? `<p style="font-size:10px;color:#2d6a4f;margin:0;">参考動画: ${advice.youtube}</p>` : ''}
-</div>
-`;
-}).filter(Boolean);
-
-if (adviceItems.length > 0) {
-adviceSummary = `
-<h2 style="font-family:'Fraunces',serif;font-weight:400;font-size:18px;margin:24px 0 10px;border-bottom:2px solid #1a2332;padding-bottom:6px;">具体的な処方箋（優先度順）</h2>
-${adviceItems.join('')}
-`;
-}
-}
-
-// TUG集計
-let tugSummary = '';
-if (tugRecords.length > 0) {
-const times = tugRecords.map(r => r.tugTotalTime);
-const avgTime = (mean(times)).toFixed(1);
-const minTime = Math.min(...times).toFixed(1);
-const latestTime = times[times.length - 1].toFixed(1);
-tugSummary = `
-<h2 style="font-family:'Fraunces',serif;font-weight:400;font-size:18px;margin:24px 0 10px;border-bottom:2px solid #1a2332;padding-bottom:6px;">TUGテスト集計</h2>
-<div class="summary-grid">
-<div class="summary-card">
-<div class="summary-label">最新</div>
-<div class="summary-value" style="font-size:28px;">${latestTime}<span style="font-size:14px;">秒</span></div>
-</div>
-<div class="summary-card">
-<div class="summary-label">最速</div>
-<div class="summary-value" style="font-size:28px;">${minTime}<span style="font-size:14px;">秒</span></div>
-</div>
-<div class="summary-card">
-<div class="summary-label">平均</div>
-<div class="summary-value" style="font-size:28px;">${avgTime}<span style="font-size:14px;">秒</span></div>
-</div>
-<div class="summary-card">
-<div class="summary-label">測定回数</div>
-<div class="summary-value" style="font-size:28px;">${tugRecords.length}</div>
-</div>
-</div>
-`;
-}
-
-// CS-30集計
-let cs30Summary = '';
-if (cs30Records.length > 0) {
-const counts = cs30Records.map(r => r.cs30Count);
-const avgCount = Math.round(mean(counts));
-const maxCount = Math.max(...counts);
-const latestCount = counts[counts.length - 1];
-cs30Summary = `
-<h2 style="font-family:'Fraunces',serif;font-weight:400;font-size:18px;margin:24px 0 10px;border-bottom:2px solid #1a2332;padding-bottom:6px;">CS-30（15秒版）集計</h2>
-<div class="summary-grid">
-<div class="summary-card">
-<div class="summary-label">最新</div>
-<div class="summary-value" style="font-size:28px;">${latestCount}<span style="font-size:14px;">回</span></div>
-</div>
-<div class="summary-card">
-<div class="summary-label">最高</div>
-<div class="summary-value" style="font-size:28px;">${maxCount}<span style="font-size:14px;">回</span></div>
-</div>
-<div class="summary-card">
-<div class="summary-label">平均</div>
-<div class="summary-value" style="font-size:28px;">${avgCount}<span style="font-size:14px;">回</span></div>
-</div>
-<div class="summary-card">
-<div class="summary-label">測定回数</div>
-<div class="summary-value" style="font-size:28px;">${cs30Records.length}</div>
-</div>
-</div>
-`;
-}
-
-// 担当スタッフ一覧
-const staffSet = new Set(history.map(h => h.staff).filter(Boolean));
-const staffStr = staffSet.size > 0 ? Array.from(staffSet).join(', ') : '記録なし';
-
-// 利用者プロファイル
-const profileItems = [];
-if (u.age) profileItems.push(u.age + '歳');
-if (u.gender === 'm') profileItems.push('男性');
-else if (u.gender === 'f') profileItems.push('女性');
-if (u.note) profileItems.push(u.note);
-const profileStr = profileItems.join(' · ');
-
-// 測定記録一覧（最新30件）
-const recentRecords = [...history].reverse().slice(0, 30);
-const recordRows = recentRecords.map(h => {
-let scoreCol;
-if (h.isTug) scoreCol = h.tugTotalTime + '秒';
-else if (h.isCS30) scoreCol = h.cs30Count + '回';
-else scoreCol = h.overall + '点';
-const vp = h.isTug ? 'TUG' : (h.isCS30 ? 'CS-30' : ({'side':'横','front':'前','back':'背面','tm_side':'TM横','tm_front':'TM前','tm_back':'TM背面','multi':'3方向'}[h.viewpoint] || h.viewpoint));
-return `
-<tr>
-<td style="padding:6px 10px;border-bottom:1px solid #eee;font-size:11px;">${new Date(h.timestamp).toLocaleString('ja-JP', {year:'numeric',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})}</td>
-<td style="padding:6px 10px;border-bottom:1px solid #eee;font-size:11px;">${vp}</td>
-<td style="padding:6px 10px;border-bottom:1px solid #eee;font-size:11px;text-align:right;font-weight:500;">${scoreCol}</td>
-<td style="padding:6px 10px;border-bottom:1px solid #eee;font-size:11px;">${h.staff || '—'}</td>
-<td style="padding:6px 10px;border-bottom:1px solid #eee;font-size:11px;">${h.note || ''}</td>
-</tr>
-`;
-}).join('');
-
-// 印刷用ウィンドウを開く
-const win = window.open('', '_blank');
-if (!win) {
-alert('ポップアップがブロックされています。ブラウザの設定で許可してください。');
-return;
-}
-
-win.document.write(`<!DOCTYPE html>
-<html lang="ja">
-<head>
-<meta charset="UTF-8">
-<title>歩行解析 総合レポート - ${escapeHtml(u.name)}</title>
-<style>
-@page { margin: 15mm; }
-body {
-font-family: 'Hiragino Sans', 'Yu Gothic', sans-serif;
-color: #1a2332;
-line-height: 1.6;
-max-width: 800px;
-margin: 0 auto;
-padding: 20px;
-}
-.report-header {
-border-bottom: 3px solid #1a2332;
-padding-bottom: 12px;
-margin-bottom: 20px;
-}
-.report-header h1 {
-font-family: 'Fraunces', serif;
-font-weight: 400;
-font-size: 26px;
-margin: 0 0 6px 0;
-}
-.report-header .subtitle {
-font-size: 13px;
-color: #555;
-}
-.summary-grid {
-display: grid;
-grid-template-columns: repeat(4, 1fr);
-gap: 10px;
-margin: 14px 0 8px;
-}
-.summary-card {
-border: 1px solid #ddd;
-background: #f9f5ec;
-padding: 12px;
-border-radius: 3px;
-text-align: center;
-}
-.summary-label {
-font-family: monospace;
-font-size: 9px;
-letter-spacing: 0.1em;
-color: #666;
-text-transform: uppercase;
-margin-bottom: 4px;
-}
-.summary-value {
-font-family: 'Fraunces', serif;
-font-size: 36px;
-font-weight: 300;
-line-height: 1;
-}
-.info-row {
-display: flex;
-gap: 20px;
-margin-bottom: 14px;
-font-size: 13px;
-}
-.info-row strong {
-min-width: 60px;
-display: inline-block;
-}
-.footer {
-margin-top: 30px;
-padding-top: 12px;
-border-top: 1px solid #ddd;
-font-size: 10px;
-color: #888;
-display: flex;
-justify-content: space-between;
-}
-@media print {
-.no-print { display: none; }
-body { padding: 0; }
-h2 { page-break-after: avoid; }
-}
-.no-print {
-text-align: center;
-margin: 20px 0;
-}
-.no-print button {
-background: #2d6a4f;
-color: white;
-border: none;
-padding: 12px 24px;
-font-size: 14px;
-cursor: pointer;
-border-radius: 3px;
-margin: 0 6px;
-}
-</style>
-
-</head>
-<body>
-
-<div class="no-print">
-<button onclick="window.print()">📄 印刷 / PDF保存</button>
-<button onclick="window.close()" style="background:#888;">閉じる</button>
-</div>
-
-<div class="report-header">
-<h1>歩行解析 総合レポート</h1>
-<div class="subtitle">Gait Lab — Comprehensive Report</div>
-</div>
-
-<div class="info-row">
-<div><strong>利用者:</strong> ${escapeHtml(u.name)}</div>
-<div><strong>属性:</strong> ${escapeHtml(profileStr) || '—'}</div>
-</div>
-<div class="info-row">
-<div><strong>測定期間:</strong> ${firstDate.toLocaleDateString('ja-JP')} 〜 ${lastDate.toLocaleDateString('ja-JP')} (${periodDays}日間)</div>
-<div><strong>測定回数:</strong> ${history.length}回</div>
-</div>
-<div class="info-row">
-<div><strong>担当スタッフ:</strong> ${escapeHtml(staffStr)}</div>
-<div><strong>レポート作成日:</strong> ${new Date().toLocaleDateString('ja-JP')}</div>
-</div>
-
-${normalSummary ? `<h2 style="font-family:'Fraunces',serif;font-weight:400;font-size:18px;margin:24px 0 10px;border-bottom:2px solid #1a2332;padding-bottom:6px;">通常測定の総合スコア</h2>${normalSummary}` : ‘’}
-${metricSummary}
-${tugSummary}
-${cs30Summary}
-${adviceSummary}
-
-<h2 style="font-family:'Fraunces',serif;font-weight:400;font-size:18px;margin:24px 0 10px;border-bottom:2px solid #1a2332;padding-bottom:6px;">直近の測定記録（最新30件）</h2>
-<table style="width:100%;border-collapse:collapse;">
-<thead>
-<tr style="background:#ebe1cf;">
-<th style="padding:6px 10px;text-align:left;font-size:11px;">日時</th>
-<th style="padding:6px 10px;text-align:left;font-size:11px;">種別</th>
-<th style="padding:6px 10px;text-align:right;font-size:11px;">結果</th>
-<th style="padding:6px 10px;text-align:left;font-size:11px;">担当</th>
-<th style="padding:6px 10px;text-align:left;font-size:11px;">メモ</th>
-</tr>
-</thead>
-<tbody>${recordRows}</tbody>
-</table>
-
-<div class="footer">
-<span>GAIT LAB / リハビリ支援版</span>
-<span>${new Date().toLocaleString('ja-JP')} 出力</span>
-</div>
-
-</body>
-</html>`);
-win.document.close();
-// 親ウィンドウから印刷ダイアログを開く
-setTimeout(() => {
-try { win.print(); } catch (e) { /* ignore */ }
-}, 600);
-}
 
 function drawHistoryChart(history) {
-const canvas = $(‘historyChart’);
+const canvas = $('historyChart');
 if (!canvas) return;
 const dpr = window.devicePixelRatio || 1;
 const rect = canvas.getBoundingClientRect();
 canvas.width = rect.width * dpr;
 canvas.height = 220 * dpr;
-canvas.style.height = ‘220px’;
-const ctx = canvas.getContext(‘2d’);
+canvas.style.height = '220px';
+const ctx = canvas.getContext('2d');
 ctx.scale(dpr, dpr);
 
 const w = rect.width, h = 220;
@@ -5139,24 +4754,24 @@ const padX = 36, padY = 22;
 ctx.clearRect(0, 0, w, h);
 
 const data = history.map(x => x.overall);
-const min = Math.max(0, Math.min(…data) - 10);
-const max = Math.min(100, Math.max(…data) + 10);
+const min = Math.max(0, Math.min(...data) - 10);
+const max = Math.min(100, Math.max(...data) + 10);
 
-ctx.strokeStyle = ‘rgba(26,35,50,0.08)’;
+ctx.strokeStyle = 'rgba(26,35,50,0.08)';
 ctx.lineWidth = 1;
 for (let i = 0; i <= 4; i++) {
 const y = padY + ((h - padY * 2) * i / 4);
 ctx.beginPath();
 ctx.moveTo(padX, y); ctx.lineTo(w - padX, y);
 ctx.stroke();
-ctx.fillStyle = ‘#2d3a4a’;
-ctx.font = ‘10px JetBrains Mono’;
-ctx.textAlign = ‘right’;
+ctx.fillStyle = '#2d3a4a';
+ctx.font = '10px JetBrains Mono';
+ctx.textAlign = 'right';
 const v = Math.round(max - (max - min) * i / 4);
 ctx.fillText(v, padX - 6, y + 3);
 }
 
-ctx.strokeStyle = ‘#2d6a4f’;
+ctx.strokeStyle = '#2d6a4f';
 ctx.lineWidth = 2;
 ctx.beginPath();
 data.forEach((v, i) => {
@@ -5166,7 +4781,7 @@ if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
 });
 ctx.stroke();
 
-ctx.fillStyle = ‘#2d6a4f’;
+ctx.fillStyle = '#2d6a4f';
 data.forEach((v, i) => {
 const x = padX + ((w - padX * 2) * (data.length === 1 ? 0.5 : i / (data.length - 1)));
 const y = padY + ((h - padY * 2) * (1 - (v - min) / (max - min)));
@@ -5178,34 +4793,54 @@ ctx.fill();
 
 function renderCompare() {
 const u = getCurrentUser();
-const c = $(‘compareContent’);
+const c = $('compareContent');
 if (!u) {
-c.innerHTML = ‘<div class="history-empty"><p>利用者が選択されていません。</p></div>’;
+c.innerHTML = '<div class="history-empty"><p>利用者が選択されていません。</p></div>';
 return;
 }
 const history = u.history || [];
 if (history.length < 2) {
-c.innerHTML = ` <div class="history-empty"> <p>${escapeHtml(u.name)} さんの比較には2回以上の測定が必要です。</p> <p style="font-size: 13px;">現在の記録: ${history.length} 件</p> </div>`;
+c.innerHTML = `
+<div class="history-empty">
+<p>${escapeHtml(u.name)} さんの比較には2回以上の測定が必要です。</p>
+<p style="font-size: 13px;">現在の記録: ${history.length} 件</p>
+</div>`;
 return;
 }
 
 const opts = history.map((h, i) =>
 `<option value="${i}">${new Date(h.timestamp).toLocaleString('ja-JP', {month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})} (${h.overall}点)</option>`
-).join(’’);
+).join('');
 
-c.innerHTML = `<div style="font-family:'Fraunces',serif;font-size:20px;margin-bottom:16px;color:var(--ink-soft);"> <span style="font-style:italic;">利用者:</span> ${escapeHtml(u.name)} </div> <div class="setup-card" style="margin-bottom: 20px;"> <div class="setup-row"> <div class="field"> <label>Before（過去）</label> <select id="cmpBefore">${opts}</select> </div> <div class="field"> <label>After（最新）</label> <select id="cmpAfter">${opts}</select> </div> </div> </div> <div id="cmpResult"></div>`;
+c.innerHTML = `
+<div style="font-family:'Fraunces',serif;font-size:20px;margin-bottom:16px;color:var(--ink-soft);">
+<span style="font-style:italic;">利用者:</span> ${escapeHtml(u.name)}
+</div>
+<div class="setup-card" style="margin-bottom: 20px;">
+<div class="setup-row">
+<div class="field">
+<label>Before（過去）</label>
+<select id="cmpBefore">${opts}</select>
+</div>
+<div class="field">
+<label>After（最新）</label>
+<select id="cmpAfter">${opts}</select>
+</div>
+</div>
+</div>
+<div id="cmpResult"></div>
+`;
 
-$(‘cmpBefore’).value = 0;
-$(‘cmpAfter’).value = history.length - 1;
+$('cmpBefore').value = 0;
+$('cmpAfter').value = history.length - 1;
 
-const labelMap = {posture:‘姿勢’, head:‘頭部’, pelvic:‘骨盤’, symmetry:‘対称性’, rhythm:‘リズム’, sway:‘骨盤動揺’, shoulder:‘肩の差’, spine:‘脊柱側屈’};
+const labelMap = {posture:'姿勢', head:'頭部', pelvic:'骨盤', symmetry:'対称性', rhythm:'リズム', sway:'骨盤動揺', shoulder:'肩の差', spine:'脊柱側屈'};
 const renderCmp = () => {
-const a = history[parseInt($(‘cmpBefore’).value)];
-const b = history[parseInt($(‘cmpAfter’).value)];
+const a = history[parseInt($('cmpBefore').value)];
+const b = history[parseInt($('cmpAfter').value)];
 const diff = b.overall - a.overall;
-const sign = diff >= 0 ? ‘+’ : ‘’;
+const sign = diff >= 0 ? '+' : '';
 
-```
 // 共通項目だけマッチさせる（背面モード×通常モードのような混在に対応）
 const bByKey = new Map(b.metrics.map(m => [m.key, m]));
 const matched = a.metrics.filter(m => bByKey.has(m.key));
@@ -5252,36 +4887,41 @@ ${metricRows}
 ${noMatchNote}
 </div>
 `;
-```
-
 };
 
-$(‘cmpBefore’).addEventListener(‘change’, renderCmp);
-$(‘cmpAfter’).addEventListener(‘change’, renderCmp);
+$('cmpBefore').addEventListener('change', renderCmp);
+$('cmpAfter').addEventListener('change', renderCmp);
 renderCmp();
 }
 
 function renderGoal() {
 const u = getCurrentUser();
-const display = $(‘goalDisplay’);
+const display = $('goalDisplay');
 if (!u) {
-display.innerHTML = ‘<div class="history-empty"><p>利用者が選択されていません。</p></div>’;
+display.innerHTML = '<div class="history-empty"><p>利用者が選択されていません。</p></div>';
 return;
 }
 const goal = u.goal;
 const history = u.history || [];
 
 if (goal) {
-$(‘goalScore’).value = goal.score;
-$(‘goalDate’).value = goal.date;
+$('goalScore').value = goal.score;
+$('goalDate').value = goal.date;
 } else {
 const future = new Date();
 future.setMonth(future.getMonth() + 1);
-$(‘goalDate’).value = future.toISOString().split(‘T’)[0];
+$('goalDate').value = future.toISOString().split('T')[0];
 }
 
 if (!goal) {
-display.innerHTML = ` <div style="font-family:'Fraunces',serif;font-size:18px;margin-bottom:14px;color:var(--ink-soft);"> 利用者: ${escapeHtml(u.name)} </div> <div class="history-empty"> <p>まだ目標が設定されていません。</p> <p style="font-size: 13px;">上のフォームから目標を設定しましょう。</p> </div>`;
+display.innerHTML = `
+<div style="font-family:'Fraunces',serif;font-size:18px;margin-bottom:14px;color:var(--ink-soft);">
+利用者: ${escapeHtml(u.name)}
+</div>
+<div class="history-empty">
+<p>まだ目標が設定されていません。</p>
+<p style="font-size: 13px;">上のフォームから目標を設定しましょう。</p>
+</div>`;
 return;
 }
 
@@ -5292,15 +4932,35 @@ const currentGain = latest - startScore;
 const progress = totalGain > 0 ? Math.min(100, Math.max(0, (currentGain / totalGain) * 100)) : (latest >= goal.score ? 100 : 0);
 const daysLeft = Math.ceil((new Date(goal.date) - new Date()) / (1000 * 60 * 60 * 24));
 
-display.innerHTML = `<div style="font-family:'Fraunces',serif;font-size:18px;margin-bottom:14px;color:var(--ink-soft);"> 利用者: ${escapeHtml(u.name)} </div> <div class="goal-display"> <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;"> <span style="font-family:'Fraunces',serif;font-size:18px;">目標: ${goal.score} 点</span> <span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--ink-soft);">あと ${daysLeft > 0 ? daysLeft : 0} 日</span> </div> <div class="goal-bar"><div style="width:${progress}%"></div></div> <div class="goal-meta"> <span>${startScore} → ${latest} 点</span> <span>進捗 ${Math.round(progress)}%</span> </div> <p style="font-size: 13px; color: var(--ink-soft); margin-top: 12px;"> ${latest >= goal.score ? '🎉 目標達成おめでとうございます！' : daysLeft <= 0 ? '期限を過ぎました。新しい目標を設定しましょう。' :`あと ${goal.score - latest} 点で目標達成です。`} </p> </div> `;
+display.innerHTML = `
+<div style="font-family:'Fraunces',serif;font-size:18px;margin-bottom:14px;color:var(--ink-soft);">
+利用者: ${escapeHtml(u.name)}
+</div>
+<div class="goal-display">
+<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;">
+<span style="font-family:'Fraunces',serif;font-size:18px;">目標: ${goal.score} 点</span>
+<span style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--ink-soft);">あと ${daysLeft > 0 ? daysLeft : 0} 日</span>
+</div>
+<div class="goal-bar"><div style="width:${progress}%"></div></div>
+<div class="goal-meta">
+<span>${startScore} → ${latest} 点</span>
+<span>進捗 ${Math.round(progress)}%</span>
+</div>
+<p style="font-size: 13px; color: var(--ink-soft); margin-top: 12px;">
+${latest >= goal.score ? '🎉 目標達成おめでとうございます！' :
+daysLeft <= 0 ? '期限を過ぎました。新しい目標を設定しましょう。' :
+`あと ${goal.score - latest} 点で目標達成です。`}
+</p>
+</div>
+`;
 }
 
-$(‘saveGoalBtn’).addEventListener(‘click’, () => {
-if (!getCurrentUser()) { alert(‘先に利用者を選択してください’); return; }
-const score = parseInt($(‘goalScore’).value);
-const date = $(‘goalDate’).value;
+$('saveGoalBtn').addEventListener('click', () => {
+if (!getCurrentUser()) { alert('先に利用者を選択してください'); return; }
+const score = parseInt($('goalScore').value);
+const date = $('goalDate').value;
 if (!score || !date) {
-alert(‘スコアと日付を入力してください’);
+alert('スコアと日付を入力してください');
 return;
 }
 updateCurrentUser(u => { u.goal = { score, date }; });
@@ -5308,21 +4968,21 @@ renderGoal();
 });
 
 const BADGES = [
-{ id: ‘first’, icon: ‘🎯’, name: ‘初測定’, desc: ‘FIRST STEP’, check: (h) => h.length >= 1 },
-{ id: ‘three’, icon: ‘📊’, name: ‘3回測定’, desc: ‘3 SESSIONS’, check: (h) => h.length >= 3 },
-{ id: ‘ten’, icon: ‘🏆’, name: ‘10回測定’, desc: ‘10 SESSIONS’, check: (h) => h.length >= 10 },
-{ id: ‘thirty’, icon: ‘⭐’, name: ‘30回測定’, desc: ‘30 SESSIONS’, check: (h) => h.length >= 30 },
-{ id: ‘score70’, icon: ‘🥉’, name: ‘70点突破’, desc: ‘SCORE 70+’, check: (h) => h.some(x => x.overall >= 70) },
-{ id: ‘score80’, icon: ‘🥈’, name: ‘80点突破’, desc: ‘SCORE 80+’, check: (h) => h.some(x => x.overall >= 80) },
-{ id: ‘score90’, icon: ‘🥇’, name: ‘90点突破’, desc: ‘SCORE 90+’, check: (h) => h.some(x => x.overall >= 90) },
-{ id: ‘improve10’, icon: ‘📈’, name: ‘10点向上’, desc: ‘+10 IMPROVEMENT’, check: (h) => h.length >= 2 && (Math.max(…h.map(x => x.overall)) - h[0].overall >= 10) },
-{ id: ‘streak7’, icon: ‘🔥’, name: ‘7日連続’, desc: ‘7 DAY STREAK’, check: (h) => checkStreak(h, 7) },
-{ id: ‘symmetric’, icon: ‘⚖️’, name: ‘完璧な対称性’, desc: ‘SYMMETRY 95+’, check: (h) => h.some(x => x.metrics.find(m => m.key === ‘symmetry’)?.score >= 95) }
+{ id: 'first', icon: '🎯', name: '初測定', desc: 'FIRST STEP', check: (h) => h.length >= 1 },
+{ id: 'three', icon: '📊', name: '3回測定', desc: '3 SESSIONS', check: (h) => h.length >= 3 },
+{ id: 'ten', icon: '🏆', name: '10回測定', desc: '10 SESSIONS', check: (h) => h.length >= 10 },
+{ id: 'thirty', icon: '⭐', name: '30回測定', desc: '30 SESSIONS', check: (h) => h.length >= 30 },
+{ id: 'score70', icon: '🥉', name: '70点突破', desc: 'SCORE 70+', check: (h) => h.some(x => x.overall >= 70) },
+{ id: 'score80', icon: '🥈', name: '80点突破', desc: 'SCORE 80+', check: (h) => h.some(x => x.overall >= 80) },
+{ id: 'score90', icon: '🥇', name: '90点突破', desc: 'SCORE 90+', check: (h) => h.some(x => x.overall >= 90) },
+{ id: 'improve10', icon: '📈', name: '10点向上', desc: '+10 IMPROVEMENT', check: (h) => h.length >= 2 && (Math.max(...h.map(x => x.overall)) - h[0].overall >= 10) },
+{ id: 'streak7', icon: '🔥', name: '7日連続', desc: '7 DAY STREAK', check: (h) => checkStreak(h, 7) },
+{ id: 'symmetric', icon: '⚖️', name: '完璧な対称性', desc: 'SYMMETRY 95+', check: (h) => h.some(x => x.metrics.find(m => m.key === 'symmetry')?.score >= 95) }
 ];
 
 function checkStreak(history, days) {
 if (history.length < days) return false;
-const dates = […new Set(history.map(h => new Date(h.timestamp).toDateString()))].sort();
+const dates = [...new Set(history.map(h => new Date(h.timestamp).toDateString()))].sort();
 let max = 1, cur = 1;
 for (let i = 1; i < dates.length; i++) {
 const diff = (new Date(dates[i]) - new Date(dates[i-1])) / (1000 * 60 * 60 * 24);
@@ -5347,27 +5007,36 @@ newlyEarned.push(b);
 updateCurrentUser(uu => { uu.badges = earned; });
 if (newlyEarned.length > 0) {
 setTimeout(() => {
-alert(‘🎉 新しいバッジを獲得しました!\n’ + newlyEarned.map(b => `${b.icon} ${b.name}`).join(’\n’));
+alert('🎉 新しいバッジを獲得しました!\n' + newlyEarned.map(b => `${b.icon} ${b.name}`).join('\n'));
 }, 2000);
 }
 }
 
 function renderBadges() {
 const u = getCurrentUser();
-const grid = $(‘badgesGrid’);
+const grid = $('badgesGrid');
 if (!u) {
-grid.innerHTML = ‘<div class="history-empty" style="grid-column: 1 / -1;"><p>利用者が選択されていません。</p></div>’;
+grid.innerHTML = '<div class="history-empty" style="grid-column: 1 / -1;"><p>利用者が選択されていません。</p></div>';
 return;
 }
 const earned = u.badges || [];
-grid.innerHTML = ` <div style="grid-column: 1 / -1; font-family:'Fraunces',serif;font-size:18px;margin-bottom:8px;color:var(--ink-soft);"> 利用者: ${escapeHtml(u.name)} （${earned.length} / ${BADGES.length}） </div>` + BADGES.map(b => `<div class="badge ${earned.includes(b.id) ? 'earned' : ''}"> <div class="badge-icon">${b.icon}</div> <div class="badge-name">${b.name}</div> <div class="badge-desc">${b.desc}</div> </div>`).join(’’);
+grid.innerHTML = `
+<div style="grid-column: 1 / -1; font-family:'Fraunces',serif;font-size:18px;margin-bottom:8px;color:var(--ink-soft);">
+利用者: ${escapeHtml(u.name)} （${earned.length} / ${BADGES.length}）
+</div>` + BADGES.map(b => `
+<div class="badge ${earned.includes(b.id) ? 'earned' : ''}">
+<div class="badge-icon">${b.icon}</div>
+<div class="badge-name">${b.name}</div>
+<div class="badge-desc">${b.desc}</div>
+</div>
+`).join('');
 }
 
 // ============== Init ==============
 refreshUserBar();
 refreshStaffSelect();
 updateTakesIndicator();
-totalTakes = parseInt($(‘takeCount’).value);
+totalTakes = parseInt($('takeCount').value);
 checkBackupReminder();
 </script>
 
