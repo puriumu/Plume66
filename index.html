@@ -1060,6 +1060,7 @@ display: none !important;
 <option value="multi">3方向セット測定（横+前+背面）</option>
 <option value="tug">TUG（Timed Up and Go）テスト</option>
 <option value="cs30">CS-30（15秒版・椅子立ち上がり）</option>
+<option value="posture">立位姿勢評価（3方向静止）</option>
 </select>
 </div>
 </div>
@@ -1973,6 +1974,10 @@ $('viewpoint').disabled = true;
 totalTakes = 1;
 $('viewpoint').value = 'side';
 $('viewpoint').disabled = true;
+} else if (measureMode === 'posture') {
+totalTakes = 3;
+$('viewpoint').value = 'side';
+$('viewpoint').disabled = true;
 } else {
 totalTakes = parseInt(measureMode);
 $('viewpoint').disabled = false;
@@ -1990,6 +1995,9 @@ p.innerHTML = '椅子に座った状態から、立ち上がる→3m歩く→方
 } else if (measureMode === 'cs30') {
 h3.textContent = 'CS-30動画をアップロード（15秒版）';
 p.innerHTML = '椅子に座った状態から、15秒間できるだけ多く立ち座りを繰り返す動画を横から撮影';
+} else if (measureMode === 'posture') {
+h3.textContent = '立位姿勢の動画をアップロード（横から）';
+p.innerHTML = '直立してまっすぐ立った状態の動画（3〜5秒）を3方向から撮影。<br>順番: 横 → 前 → 後ろ';
 } else {
 h3.textContent = '動画をドロップ または タップして選択';
 p.textContent = '歩行動画 / MP4・MOV・WebM';
@@ -2065,6 +2073,9 @@ let isTugMode = false;
 let tugResult = null;
 // CS-30モード用の状態
 let isCS30Mode = false;
+// 立位姿勢評価モード用
+let isPostureMode = false;
+let postureResults = []; // 3方向の結果を蓄積
 
 async function handleFile(file) {
 $('errorBox').innerHTML = '';
@@ -2077,11 +2088,17 @@ currentVideoFile = file;
 measureMode = $('takeCount').value;
 isTugMode = (measureMode === 'tug');
 isCS30Mode = (measureMode === 'cs30');
+isPostureMode = (measureMode === 'posture');
 
 if (measureMode === 'multi') {
 totalTakes = 3;
 const baseView = MULTI_VIEWS[currentTake];
 $('viewpoint').value = baseView;
+} else if (measureMode === 'posture') {
+totalTakes = 3;
+const postureViews = ['side', 'front', 'back'];
+$('viewpoint').value = postureViews[currentTake];
+if (currentTake === 0) postureResults = [];
 } else if (measureMode === 'tug' || measureMode === 'cs30') {
 totalTakes = 1;
 } else {
@@ -2882,6 +2899,33 @@ const cs30Scoring = scoreCS30(frames, $('video').duration);
 currentFrames = [...frames];
 showCS30Results(cs30Scoring);
 await saveCS30ToHistory(cs30Scoring);
+checkAndAwardBadges();
+return;
+}
+
+// ===== 立位姿勢評価モード =====
+if (isPostureMode) {
+const postureViews = ['side', 'front', 'back'];
+const currentView = postureViews[currentTake];
+const postureScoring = scorePosture(frames, currentView);
+postureResults.push({ view: currentView, scoring: postureScoring, frames: [...frames] });
+currentTake++;
+updateTakesIndicator();
+
+if (currentTake < totalTakes) {
+$('analysisView').style.display = 'none';
+$('uploadZone').style.display = 'block';
+const viewLabel = { side: '横', front: '前', back: '後ろ' }[postureViews[currentTake]];
+$('uploadZone').querySelector('h3').textContent = `${currentTake + 1}/3 回目: ${viewLabel}からの立位を撮影`;
+showGuide(`<h4>${viewLabel}からの立位姿勢を撮影してください</h4>直立したまま3〜5秒間の動画をアップロードしてください。`, true);
+return;
+}
+
+// 3方向完了 → 統合結果を表示
+currentFrames = postureResults[0].frames;
+const combinedPosture = combinePostureResults(postureResults);
+showPostureResults(combinedPosture);
+await savePostureToHistory(combinedPosture);
 checkAndAwardBadges();
 return;
 }
@@ -4106,6 +4150,642 @@ if (u.history.length > 200) u.history.shift();
 });
 }
 
+// ============== 立位姿勢評価 ==============
+function scorePosture(frames, viewpoint) {
+// 動画の中央フレームを採用（最も安定した姿勢のため）
+const midFrame = frames[Math.floor(frames.length / 2)];
+// ただし複数フレームの平均を取って安定化
+const useFrames = frames.slice(Math.floor(frames.length * 0.3), Math.floor(frames.length * 0.7));
+
+// 各関節位置の平均を計算
+const avgLM = midFrame.lm.map((_, idx) => {
+const xs = useFrames.map(f => f.lm[idx].x);
+const ys = useFrames.map(f => f.lm[idx].y);
+const vs = useFrames.map(f => f.lm[idx].v ?? 1);
+return {
+x: mean(xs), y: mean(ys), v: mean(vs)
+};
+});
+
+const lm = avgLM;
+const metrics = [];
+
+if (viewpoint === 'side') {
+// 横から: 耳-肩-大転子-膝-くるぶしの鉛直整列をチェック
+// 耳 (7 or 8 - 左耳/右耳)、肩 (11/12)、腰 (23/24)、膝 (25/26)、足首 (27/28)
+// 横から見える側の関節を使う
+
+const ear = lm[7]?.v > lm[8]?.v ? lm[7] : lm[8];
+const shoulder = midpoint(lm[11], lm[12]);
+const hip = midpoint(lm[23], lm[24]);
+const knee = midpoint(lm[25], lm[26]);
+const ankle = midpoint(lm[27], lm[28]);
+
+// 鉛直線からのずれを計算
+// 基準: 足首のx座標が鉛直線
+const refX = ankle.x;
+const earDev = Math.abs(ear.x - refX) * 100; // 耳のx偏差(%)
+const shoulderDev = Math.abs(shoulder.x - refX) * 100;
+const hipDev = Math.abs(hip.x - refX) * 100;
+const kneeDev = Math.abs(knee.x - refX) * 100;
+
+// 頭部前方位（耳が肩より前に出ている度合い）
+const headForward = Math.max(0, ear.x - shoulder.x) * 100;
+
+// 円背・反り腰の判定（骨盤と肩を結んだ線の傾き）
+const trunkTilt = Math.abs(Math.atan2(shoulder.x - hip.x, hip.y - shoulder.y) * 180 / Math.PI);
+
+metrics.push({
+key: 'alignment',
+name: '鉛直整列',
+sub: 'EAR-SHOULDER-HIP-KNEE-ANKLE',
+score: clampScore((earDev + shoulderDev + hipDev + kneeDev) / 4, 2, 10),
+raw: (earDev + shoulderDev + hipDev + kneeDev) / 4
+});
+metrics.push({
+key: 'head_forward',
+name: '頭部前方位',
+sub: 'HEAD FORWARD POSTURE',
+score: clampScore(headForward, 2, 12),
+raw: headForward
+});
+metrics.push({
+key: 'trunk_tilt',
+name: '体幹の傾き',
+sub: 'TRUNK TILT',
+score: clampScore(trunkTilt, 2, 15),
+raw: trunkTilt
+});
+} else if (viewpoint === 'front') {
+// 前から: 肩の左右差、骨盤の左右差、重心の偏り、膝の内外反
+
+const shoulderDiff = Math.abs(lm[11].y - lm[12].y) * 100;
+const hipDiff = Math.abs(lm[23].y - lm[24].y) * 100;
+
+// 重心の偏り（左右の足首の中点と腰の中点のx差）
+const ankleMidX = (lm[27].x + lm[28].x) / 2;
+const hipMidX = (lm[23].x + lm[24].x) / 2;
+const comShift = Math.abs(hipMidX - ankleMidX) * 100;
+
+// X脚・O脚（膝のx座標と足首のx座標の関係）
+// 通常: 膝と足首はほぼ同じx座標
+// X脚: 膝が内側に寄る（lm[25].x が lm[27].x より右、lm[26].x が lm[28].x より左）
+// O脚: 逆
+const lKneeAnkleX = (lm[25].x - lm[27].x) * 100; // 正なら膝が外、負なら内
+const rKneeAnkleX = (lm[28].x - lm[26].x) * 100;
+const kneeAlignment = Math.abs(lKneeAnkleX) + Math.abs(rKneeAnkleX);
+
+metrics.push({
+key: 'shoulder_level',
+name: '肩の高さ左右差',
+sub: 'SHOULDER LEVEL',
+score: clampScore(shoulderDiff, 1, 6),
+raw: shoulderDiff
+});
+metrics.push({
+key: 'pelvic_level',
+name: '骨盤の高さ左右差',
+sub: 'PELVIC LEVEL',
+score: clampScore(hipDiff, 1, 6),
+raw: hipDiff
+});
+metrics.push({
+key: 'com_shift',
+name: '重心の偏り',
+sub: 'CENTER OF MASS',
+score: clampScore(comShift, 2, 8),
+raw: comShift
+});
+metrics.push({
+key: 'knee_alignment',
+name: '膝の整列',
+sub: 'KNEE ALIGNMENT (X/O脚)',
+score: clampScore(kneeAlignment, 3, 12),
+raw: kneeAlignment
+});
+} else if (viewpoint === 'back') {
+// 後ろから: 肩甲骨の高さ、脊柱の側弯、骨盤の傾き
+const shoulderDiff = Math.abs(lm[11].y - lm[12].y) * 100;
+const hipDiff = Math.abs(lm[23].y - lm[24].y) * 100;
+
+// 脊柱の側弯傾向: 肩中点と腰中点のx座標の差
+const shoulderMidX = (lm[11].x + lm[12].x) / 2;
+const hipMidX = (lm[23].x + lm[24].x) / 2;
+const spineDeviation = Math.abs(shoulderMidX - hipMidX) * 100;
+
+// 骨盤の傾き
+const pelvicTilt = Math.abs(Math.atan2(lm[24].y - lm[23].y, lm[24].x - lm[23].x) * 180 / Math.PI);
+
+metrics.push({
+key: 'scapula_level',
+name: '肩甲骨の高さ',
+sub: 'SCAPULA LEVEL',
+score: clampScore(shoulderDiff, 1, 6),
+raw: shoulderDiff
+});
+metrics.push({
+key: 'spine_deviation',
+name: '脊柱の側弯',
+sub: 'SPINE SCOLIOSIS',
+score: clampScore(spineDeviation, 1.5, 6),
+raw: spineDeviation
+});
+metrics.push({
+key: 'pelvic_tilt',
+name: '骨盤の傾き',
+sub: 'PELVIC TILT',
+score: clampScore(pelvicTilt, 2, 10),
+raw: pelvicTilt
+});
+}
+
+const overall = Math.round(mean(metrics.map(m => m.score)));
+
+return {
+isPosture: true,
+viewpoint,
+overall,
+metrics,
+landmarks: avgLM,
+timestamp: Date.now()
+};
+}
+
+function combinePostureResults(results) {
+// 3方向の総合スコア
+const allMetrics = [];
+results.forEach(r => {
+r.scoring.metrics.forEach(m => {
+allMetrics.push({ ...m, view: r.view });
+});
+});
+
+const overall = Math.round(mean(allMetrics.map(m => m.score)));
+const sideR = results.find(r => r.view === 'side');
+const frontR = results.find(r => r.view === 'front');
+const backR = results.find(r => r.view === 'back');
+
+return {
+isPosture: true,
+isMulti: true,
+viewpoint: 'posture',
+overall,
+metrics: allMetrics,
+sideResult: sideR,
+frontResult: frontR,
+backResult: backR,
+timestamp: Date.now(),
+pains: Array.from(selectedPains)
+};
+}
+
+function showPostureResults(combined) {
+$('analysisView').style.display = 'none';
+$('resultsView').style.display = 'block';
+$('resultsView').scrollIntoView({ behavior: 'smooth' });
+
+// score-number表示をリセット
+const maxLabel = document.querySelector('.score-number .max');
+if (maxLabel) maxLabel.textContent = '/ 100 POINTS';
+$('riskCard').querySelector('.risk-label').textContent = '— 立位姿勢評価';
+
+const u = getCurrentUser();
+$('printName').textContent = u ? u.name : '—';
+$('printDate').textContent = '測定日: ' + new Date(combined.timestamp).toLocaleString('ja-JP') + ' / 立位姿勢評価（3方向）';
+const meta = [];
+if (u?.age) meta.push(u.age + '歳');
+if (u?.gender === 'm') meta.push('男性');
+else if (u?.gender === 'f') meta.push('女性');
+if (u?.note) meta.push(u.note);
+const measureNote = $('measureNote').value.trim();
+if (measureNote) meta.push('メモ: ' + measureNote);
+const staff = $('staffSelect').value;
+if (staff) meta.push('担当: ' + staff);
+$('printProfile').textContent = meta.join(' · ') || '—';
+
+// 中央スコア
+const ring = $('scoreRing');
+const circumference = 2 * Math.PI * 98;
+ring.setAttribute('stroke-dasharray', circumference);
+setTimeout(() => {
+ring.style.strokeDashoffset = circumference - (circumference * combined.overall / 100);
+}, 200);
+$('scoreNum').textContent = combined.overall;
+let gradeText;
+if (combined.overall >= 85) gradeText = '理想的';
+else if (combined.overall >= 70) gradeText = '良好';
+else if (combined.overall >= 55) gradeText = '改善の余地あり';
+else gradeText = '要介入';
+$('scoreGrade').textContent = gradeText;
+$('ageCompare').textContent = '';
+
+// 項目別: 横・前・後ろを分けて表示
+let listHTML = '';
+const viewLabels = { side: '横から', front: '前から', back: '後ろから' };
+['side', 'front', 'back'].forEach(v => {
+const r = combined[v + 'Result'];
+if (!r) return;
+listHTML += `<div style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:0.15em;color:var(--ink-soft);margin:14px 0 6px;">— ${viewLabels[v]}（総合: ${r.scoring.overall}点）</div>`;
+r.scoring.metrics.forEach(m => {
+listHTML += `
+<div class="metric">
+<div class="metric-name">${m.name}<span>${m.sub || ''}</span></div>
+<div style="display:flex;align-items:center;gap:14px;">
+<div class="metric-score">${m.score}</div>
+</div>
+</div>
+`;
+});
+});
+$('metricsList').innerHTML = listHTML;
+
+// 見本との比較表示
+const sideSkel = renderPostureSkeleton(combined.sideResult, 'side');
+const frontSkel = renderPostureSkeleton(combined.frontResult, 'front');
+const backSkel = renderPostureSkeleton(combined.backResult, 'back');
+
+$('multiFindingsBox').innerHTML = `
+<div class="risk-section" style="border-bottom: 1px solid var(--line);">
+<h2 style="font-family:'Fraunces',serif;font-weight:300;font-size:24px;margin-bottom:6px;">あなたの姿勢 vs 100点満点の見本</h2>
+<p style="font-size: 12px; color: var(--ink-soft); margin-bottom: 14px;">左が実測、右が理想的な100点満点の姿勢です。鉛直線（点線）からのずれを比較してください。</p>
+<div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+${sideSkel}
+${frontSkel}
+${backSkel}
+</div>
+</div>
+`;
+
+$('romBox').innerHTML = '';
+
+// 評価カード
+const riskMap = {
+ideal: { level: '理想的な姿勢', desc: '3方向すべてで良好な立位姿勢が保たれています。現在の姿勢を維持しましょう。', cls: '' },
+good: { level: '良好な姿勢', desc: 'おおむね良好です。改善できる項目があれば下のアドバイスを参考にしてください。', cls: '' },
+fair: { level: '改善の余地あり', desc: '姿勢の崩れが認められる項目があります。日常生活や運動で意識的に修正していきましょう。', cls: 'warning' },
+poor: { level: '要介入レベル', desc: '複数の項目で大きな姿勢の崩れがあります。専門家による評価と個別運動プログラムをお勧めします。', cls: 'danger' }
+};
+let level;
+if (combined.overall >= 85) level = 'ideal';
+else if (combined.overall >= 70) level = 'good';
+else if (combined.overall >= 55) level = 'fair';
+else level = 'poor';
+const r = riskMap[level];
+$('riskCard').className = 'risk-card ' + r.cls;
+$('riskLevel').textContent = r.level;
+$('riskDesc').textContent = r.desc;
+
+// アドバイス: 最も低い3項目に対するアドバイス
+const sortedMetrics = [...combined.metrics].sort((a, b) => a.score - b.score).slice(0, 3);
+const adviceItems = sortedMetrics.map((m, idx) => {
+const advice = POSTURE_ADVICE[m.key] || {
+title: m.name + 'の改善',
+body: 'この項目に注意を向けましょう。専門家への相談もご検討ください。',
+youtube: null
+};
+return {
+title: advice.title,
+body: advice.body,
+youtube: advice.youtube
+};
+});
+if (adviceItems.length === 0) {
+adviceItems.push({
+title: '姿勢を維持しましょう',
+body: '良好な姿勢が保たれています。日々のストレッチと筋力トレーニングで現在の状態を維持しましょう。',
+youtube: null
+});
+}
+$('adviceList').innerHTML = adviceItems.map((a, i) => `
+<div class="advice-card">
+<div class="advice-num">0${i + 1}</div>
+<div class="advice-content">
+<h4>${a.title}</h4>
+<p>${a.body}</p>
+${a.youtube ? `<a href="${a.youtube}" target="_blank" rel="noopener" class="exercise-link">→ おすすめエクササイズ動画を見る</a>` : ''}
+</div>
+</div>
+`).join('');
+
+// スロー再生は使えるようにしておく（最初の動画）
+setupReview({ problemFrames: { posture: [], head: [], pelvic: [] } });
+}
+
+// ============== 100点満点の見本骨格 + 実測骨格を並べて表示 ==============
+function renderPostureSkeleton(result, view) {
+if (!result) return '';
+const lm = result.scoring.landmarks;
+const viewLabel = { side: '横から', front: '前から', back: '後ろから' }[view];
+
+// SVGで実測骨格を描画
+const userSVG = drawSkeleton(lm, view, false);
+// 100点満点の理想骨格
+const idealSVG = drawSkeleton(null, view, true);
+
+return `
+<div style="text-align: center;">
+<div style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:0.1em;color:var(--ink-soft);margin-bottom:4px;">— ${viewLabel}</div>
+<div style="display: flex; gap: 6px; justify-content: center;">
+<div style="flex: 1;">
+<div style="font-size: 10px; color: var(--ink-soft); margin-bottom: 2px;">実測 (${result.scoring.overall}点)</div>
+<div style="background: var(--paper-warm); border: 1px solid var(--line); border-radius: 3px; padding: 4px;">
+${userSVG}
+</div>
+</div>
+<div style="flex: 1;">
+<div style="font-size: 10px; color: var(--accent); margin-bottom: 2px;">見本 (100点)</div>
+<div style="background: rgba(82,183,136,0.08); border: 1px solid var(--accent); border-radius: 3px; padding: 4px;">
+${idealSVG}
+</div>
+</div>
+</div>
+</div>
+`;
+}
+
+function drawSkeleton(landmarks, view, isIdeal) {
+// SVG描画: 200x300のキャンバスに人型を描く
+const w = 200, h = 300;
+
+// 100点満点の理想座標を定義（人型）
+const ideal = {
+side: {
+ear: { x: 0.5, y: 0.10 },
+shoulder: { x: 0.5, y: 0.22 },
+elbow: { x: 0.52, y: 0.40 },
+wrist: { x: 0.54, y: 0.55 },
+hip: { x: 0.5, y: 0.55 },
+knee: { x: 0.5, y: 0.75 },
+ankle: { x: 0.5, y: 0.95 }
+},
+front: {
+head: { x: 0.5, y: 0.10 },
+lShoulder: { x: 0.40, y: 0.22 },
+rShoulder: { x: 0.60, y: 0.22 },
+lElbow: { x: 0.30, y: 0.40 },
+rElbow: { x: 0.70, y: 0.40 },
+lWrist: { x: 0.25, y: 0.55 },
+rWrist: { x: 0.75, y: 0.55 },
+lHip: { x: 0.43, y: 0.55 },
+rHip: { x: 0.57, y: 0.55 },
+lKnee: { x: 0.43, y: 0.75 },
+rKnee: { x: 0.57, y: 0.75 },
+lAnkle: { x: 0.43, y: 0.95 },
+rAnkle: { x: 0.57, y: 0.95 }
+},
+back: {
+head: { x: 0.5, y: 0.10 },
+lShoulder: { x: 0.60, y: 0.22 },
+rShoulder: { x: 0.40, y: 0.22 },
+lElbow: { x: 0.70, y: 0.40 },
+rElbow: { x: 0.30, y: 0.40 },
+lWrist: { x: 0.75, y: 0.55 },
+rWrist: { x: 0.25, y: 0.55 },
+lHip: { x: 0.57, y: 0.55 },
+rHip: { x: 0.43, y: 0.55 },
+lKnee: { x: 0.57, y: 0.75 },
+rKnee: { x: 0.43, y: 0.75 },
+lAnkle: { x: 0.57, y: 0.95 },
+rAnkle: { x: 0.43, y: 0.95 }
+}
+}[view];
+
+// 描画する点と接続線
+let pts = {};
+if (isIdeal || !landmarks) {
+pts = ideal;
+} else {
+// 実測値をSVGに合わせて正規化（人物の上下範囲を 0.05〜0.95 にスケール）
+if (view === 'side') {
+const ear = landmarks[7].v > landmarks[8].v ? landmarks[7] : landmarks[8];
+const sh = midpoint(landmarks[11], landmarks[12]);
+const hp = midpoint(landmarks[23], landmarks[24]);
+const kn = midpoint(landmarks[25], landmarks[26]);
+const an = midpoint(landmarks[27], landmarks[28]);
+const el = landmarks[13].v > landmarks[14].v ? landmarks[13] : landmarks[14];
+const wr = landmarks[15].v > landmarks[16].v ? landmarks[15] : landmarks[16];
+
+const ys = [ear.y, sh.y, hp.y, kn.y, an.y];
+const minY = Math.min(...ys), maxY = Math.max(...ys);
+const range = maxY - minY || 1;
+const normY = (yv) => 0.05 + ((yv - minY) / range) * 0.9;
+// x方向は中心を 0.5 にして左右に振る
+const xs = [ear.x, sh.x, hp.x, kn.x, an.x];
+const meanX = mean(xs);
+const xSpread = Math.max(...xs.map(x => Math.abs(x - meanX))) || 0.1;
+const normX = (xv) => 0.5 + (xv - meanX) / xSpread * 0.15;
+
+pts = {
+ear: { x: normX(ear.x), y: normY(ear.y) },
+shoulder: { x: normX(sh.x), y: normY(sh.y) },
+elbow: { x: normX(el.x), y: normY(el.y) },
+wrist: { x: normX(wr.x), y: normY(wr.y) },
+hip: { x: normX(hp.x), y: normY(hp.y) },
+knee: { x: normX(kn.x), y: normY(kn.y) },
+ankle: { x: normX(an.x), y: normY(an.y) }
+};
+} else {
+// front/back: 関節別に正規化
+const head = landmarks[0];
+const lSh = landmarks[11], rSh = landmarks[12];
+const lHp = landmarks[23], rHp = landmarks[24];
+const lKn = landmarks[25], rKn = landmarks[26];
+const lAn = landmarks[27], rAn = landmarks[28];
+const lEl = landmarks[13], rEl = landmarks[14];
+const lWr = landmarks[15], rWr = landmarks[16];
+
+const allPoints = [head, lSh, rSh, lHp, rHp, lKn, rKn, lAn, rAn];
+const ys = allPoints.map(p => p.y);
+const xs = allPoints.map(p => p.x);
+const minY = Math.min(...ys), maxY = Math.max(...ys);
+const minX = Math.min(...xs), maxX = Math.max(...xs);
+const yRange = (maxY - minY) || 1;
+const xRange = (maxX - minX) || 1;
+// 縦横比保持
+const scale = Math.min(0.9 / yRange, 0.7 / xRange);
+const meanX = (minX + maxX) / 2;
+
+const norm = (p) => ({
+x: 0.5 + (p.x - meanX) * scale,
+y: 0.05 + (p.y - minY) * scale
+});
+
+pts = {
+head: norm(head),
+lShoulder: norm(lSh), rShoulder: norm(rSh),
+lElbow: norm(lEl), rElbow: norm(rEl),
+lWrist: norm(lWr), rWrist: norm(rWr),
+lHip: norm(lHp), rHip: norm(rHp),
+lKnee: norm(lKn), rKnee: norm(rKn),
+lAnkle: norm(lAn), rAnkle: norm(rAn)
+};
+}
+}
+
+const color = isIdeal ? '#2d6a4f' : '#1a2332';
+const dotColor = isIdeal ? '#52b788' : '#c1654c';
+
+// 接続線とドットを生成
+let lines = '', dots = '';
+
+const drawLine = (a, b) => {
+if (!a || !b) return '';
+return `<line x1="${a.x * w}" y1="${a.y * h}" x2="${b.x * w}" y2="${b.y * h}" stroke="${color}" stroke-width="2.5" stroke-linecap="round"/>`;
+};
+const drawDot = (p, label) => {
+if (!p) return '';
+return `<circle cx="${p.x * w}" cy="${p.y * h}" r="4" fill="${dotColor}" stroke="${color}" stroke-width="1.5"/>`;
+};
+
+// 鉛直基準線（薄い点線）
+const refLine = `<line x1="${w/2}" y1="5" x2="${w/2}" y2="${h-5}" stroke="${isIdeal ? '#52b788' : '#999'}" stroke-width="1" stroke-dasharray="4,3" opacity="0.5"/>`;
+
+if (view === 'side') {
+// 頭・首
+lines += drawLine(pts.ear, pts.shoulder);
+// 肩-肘-手首
+lines += drawLine(pts.shoulder, pts.elbow);
+lines += drawLine(pts.elbow, pts.wrist);
+// 体幹
+lines += drawLine(pts.shoulder, pts.hip);
+// 下肢
+lines += drawLine(pts.hip, pts.knee);
+lines += drawLine(pts.knee, pts.ankle);
+
+// 関節点
+Object.entries(pts).forEach(([key, p]) => {
+dots += drawDot(p, key);
+});
+// 頭の円
+if (pts.ear) {
+const headSize = 14;
+dots += `<circle cx="${pts.ear.x * w}" cy="${pts.ear.y * h - 6}" r="${headSize}" fill="none" stroke="${color}" stroke-width="2"/>`;
+}
+} else {
+// 前/後ろ
+// 両肩
+lines += drawLine(pts.lShoulder, pts.rShoulder);
+// 腕
+lines += drawLine(pts.lShoulder, pts.lElbow);
+lines += drawLine(pts.lElbow, pts.lWrist);
+lines += drawLine(pts.rShoulder, pts.rElbow);
+lines += drawLine(pts.rElbow, pts.rWrist);
+// 体幹（肩中点〜腰中点）
+if (pts.lShoulder && pts.rShoulder && pts.lHip && pts.rHip) {
+const shMid = { x: (pts.lShoulder.x + pts.rShoulder.x) / 2, y: (pts.lShoulder.y + pts.rShoulder.y) / 2 };
+const hpMid = { x: (pts.lHip.x + pts.rHip.x) / 2, y: (pts.lHip.y + pts.rHip.y) / 2 };
+lines += drawLine(shMid, hpMid);
+lines += drawLine(pts.head, shMid);
+}
+// 両腰
+lines += drawLine(pts.lHip, pts.rHip);
+// 脚
+lines += drawLine(pts.lHip, pts.lKnee);
+lines += drawLine(pts.lKnee, pts.lAnkle);
+lines += drawLine(pts.rHip, pts.rKnee);
+lines += drawLine(pts.rKnee, pts.rAnkle);
+
+Object.entries(pts).forEach(([key, p]) => {
+dots += drawDot(p, key);
+});
+// 頭の円
+if (pts.head) {
+const headSize = 14;
+dots += `<circle cx="${pts.head.x * w}" cy="${pts.head.y * h - 6}" r="${headSize}" fill="none" stroke="${color}" stroke-width="2"/>`;
+}
+}
+
+return `<svg width="100%" viewBox="0 0 ${w} ${h}" style="display:block;">${refLine}${lines}${dots}</svg>`;
+}
+
+// 立位姿勢用のアドバイス
+const POSTURE_ADVICE = {
+alignment: {
+title: '鉛直整列の改善',
+body: '壁に背中をつけて立ち、後頭部・肩甲骨・お尻・かかとを壁につける練習を毎日3分行いましょう。姿勢の感覚が身につきます。',
+youtube: 'https://www.youtube.com/results?search_query=postural+alignment+exercise'
+},
+head_forward: {
+title: '頭部前方位の改善',
+body: '顎を引いて頭を後ろに引く「チンタック」運動を1日10回。スマートフォンを見る際は顔の高さまで持ち上げて使いましょう。',
+youtube: 'https://www.youtube.com/results?search_query=chin+tuck+exercise'
+},
+trunk_tilt: {
+title: '体幹の傾き改善',
+body: '体幹を真っ直ぐに保つため、プランクや背筋トレーニングを週3回行いましょう。立位時は両足均等に体重をかける意識を持ちます。',
+youtube: 'https://www.youtube.com/results?search_query=trunk+stability+exercise'
+},
+shoulder_level: {
+title: '肩の左右差改善',
+body: '高い方の肩を下げるストレッチと、低い方の肩を引き上げる運動を行いましょう。普段からカバンを持つ肩を交互に変える習慣も大切です。',
+youtube: 'https://www.youtube.com/results?search_query=shoulder+level+correction'
+},
+pelvic_level: {
+title: '骨盤の左右差改善',
+body: '片脚立ち（左右30秒ずつ）、骨盤を水平に保つコアエクササイズを行いましょう。低い方の骨盤を持ち上げる意識を持ちます。',
+youtube: 'https://www.youtube.com/results?search_query=pelvic+leveling+exercise'
+},
+com_shift: {
+title: '重心バランスの改善',
+body: '両足均等に体重をかける練習。鏡の前で立ち、左右の体重配分を意識しましょう。バランスボードや片脚立ちも効果的です。',
+youtube: 'https://www.youtube.com/results?search_query=balance+training+for+seniors'
+},
+knee_alignment: {
+title: '膝の整列改善（X脚/O脚）',
+body: 'お尻と内ももの筋力強化が有効です。ワイドスクワット、クラムシェル運動を週3回行いましょう。日常生活では膝とつま先を同じ方向に向けることを意識します。',
+youtube: 'https://www.youtube.com/results?search_query=knee+alignment+exercise'
+},
+scapula_level: {
+title: '肩甲骨の高さ改善',
+body: '肩甲骨を背中の中央に寄せる「肩甲骨スクイーズ」を1日10回×3セット。猫背の矯正にもつながります。',
+youtube: 'https://www.youtube.com/results?search_query=scapula+exercise'
+},
+spine_deviation: {
+title: '脊柱の側弯傾向の改善',
+body: '体幹の左右バランスを整えるストレッチが有効です。専門家による評価で、必要に応じて個別の運動プログラムを受けることをお勧めします。',
+youtube: 'https://www.youtube.com/results?search_query=scoliosis+exercise'
+},
+pelvic_tilt: {
+title: '骨盤の傾き改善',
+body: '骨盤を水平に保つ意識を持ちましょう。コアトレーニング、お尻周りのストレッチを毎日続けると改善が期待できます。',
+youtube: 'https://www.youtube.com/results?search_query=pelvic+tilt+correction'
+}
+};
+
+async function savePostureToHistory(combined) {
+const measurementId = Date.now();
+if (getAppSettings().saveVideo && currentVideoFile) {
+try { await videoStore.save(measurementId, currentVideoFile); }
+catch (err) { console.warn('動画保存失敗:', err); }
+}
+
+const staffName = $('staffSelect').value || null;
+const note = $('measureNote').value.trim() || '';
+
+updateCurrentUser(u => {
+u.history.push({
+id: measurementId,
+timestamp: combined.timestamp,
+isPosture: true,
+postureOverall: combined.overall,
+postureSideOverall: combined.sideResult?.scoring?.overall,
+postureFrontOverall: combined.frontResult?.scoring?.overall,
+postureBackOverall: combined.backResult?.scoring?.overall,
+postureMetrics: combined.metrics.map(m => ({ key: m.key, name: m.name, score: m.score, view: m.view })),
+// 互換性
+overall: combined.overall,
+metrics: [],
+cadence: 0,
+viewpoint: 'posture',
+staff: staffName,
+note,
+hasVideo: getAppSettings().saveVideo,
+pains: combined.pains
+});
+if (u.history.length > 200) u.history.shift();
+});
+}
+
 function averageResults(results) {
 if (results.length === 1) return results[0];
 // 複数回の検出品質のうち最も悪いものを採用
@@ -4761,11 +5441,16 @@ ${previous ? `<div class="delta ${delta >= 0 ? 'up' : 'down'}">${delta >= 0 ? '+
 <div class="history-list">
 <h3 style="font-family:'Fraunces',serif;font-weight:300;font-size:22px;margin-bottom:12px;">測定記録</h3>
 ${[...history].reverse().map(h => {
-const vp = h.isTug ? 'TUG' : (h.isCS30 ? 'CS-30' : ({'side':'横','front':'前','back':'背面','tm_side':'TM 横','tm_front':'TM 前','tm_back':'TM 背面','multi':'3方向セット'}[h.viewpoint] || h.viewpoint));
+const vp = h.isTug ? 'TUG'
+: h.isCS30 ? 'CS-30'
+: h.isPosture ? '立位姿勢'
+: ({'side':'横','front':'前','back':'背面','tm_side':'TM 横','tm_front':'TM 前','tm_back':'TM 背面','multi':'3方向セット'}[h.viewpoint] || h.viewpoint);
 const subInfo = h.isTug
 ? `${vp} · ${h.tugTotalTime}秒 / ${h.tugEvaluation}`
 : h.isCS30
 ? `${vp} · ${h.cs30Count}回(15秒) / ${h.cs30Evaluation}`
+: h.isPosture
+? `${vp} · 横${h.postureSideOverall||'—'} / 前${h.postureFrontOverall||'—'} / 後${h.postureBackOverall||'—'}`
 : `${vp} · ケイデンス: ${h.cadence || '—'} 歩/分`;
 const staffNote = (h.staff || h.note)
 ? `<div style="font-size:11px;color:var(--ink-soft);margin-top:2px;">
@@ -4864,10 +5549,11 @@ alert('測定データがありません');
 return;
 }
 
-// 通常測定 / TUG / CS-30 を分類
-const normalRecords = history.filter(h => !h.isTug && !h.isCS30);
+// 通常測定 / TUG / CS-30 / 立位姿勢 を分類
+const normalRecords = history.filter(h => !h.isTug && !h.isCS30 && !h.isPosture);
 const tugRecords = history.filter(h => h.isTug);
 const cs30Records = history.filter(h => h.isCS30);
+const postureRecords = history.filter(h => h.isPosture);
 
 // 期間
 const firstDate = new Date(history[0].timestamp);
@@ -5045,6 +5731,36 @@ cs30SummaryHTML = `
 `;
 }
 
+// ----- 立位姿勢集計 -----
+let postureSummaryHTML = '';
+if (postureRecords.length > 0) {
+const overalls = postureRecords.map(r => r.postureOverall);
+const avg = Math.round(mean(overalls));
+const max = Math.max(...overalls);
+const latest = overalls[overalls.length - 1];
+postureSummaryHTML = `
+<h2>立位姿勢評価集計</h2>
+<div class="summary-grid">
+<div class="summary-card">
+<div class="summary-label">最新</div>
+<div class="summary-value" style="font-size:28px;">${latest}<span style="font-size:14px;">点</span></div>
+</div>
+<div class="summary-card">
+<div class="summary-label">最高</div>
+<div class="summary-value" style="font-size:28px;">${max}<span style="font-size:14px;">点</span></div>
+</div>
+<div class="summary-card">
+<div class="summary-label">平均</div>
+<div class="summary-value" style="font-size:28px;">${avg}<span style="font-size:14px;">点</span></div>
+</div>
+<div class="summary-card">
+<div class="summary-label">測定回数</div>
+<div class="summary-value" style="font-size:28px;">${postureRecords.length}</div>
+</div>
+</div>
+`;
+}
+
 // 担当スタッフ
 const staffSet = new Set(history.map(h => h.staff).filter(Boolean));
 const staffStr = staffSet.size > 0 ? Array.from(staffSet).join(', ') : '記録なし';
@@ -5063,8 +5779,12 @@ const recordRows = recentRecords.map(h => {
 let scoreCol;
 if (h.isTug) scoreCol = h.tugTotalTime + '秒';
 else if (h.isCS30) scoreCol = h.cs30Count + '回';
+else if (h.isPosture) scoreCol = h.postureOverall + '点';
 else scoreCol = h.overall + '点';
-const vp = h.isTug ? 'TUG' : (h.isCS30 ? 'CS-30' : ({'side':'横','front':'前','back':'背面','tm_side':'TM横','tm_front':'TM前','tm_back':'TM背面','multi':'3方向'}[h.viewpoint] || h.viewpoint));
+const vp = h.isTug ? 'TUG'
+: h.isCS30 ? 'CS-30'
+: h.isPosture ? '立位姿勢'
+: ({'side':'横','front':'前','back':'背面','tm_side':'TM横','tm_front':'TM前','tm_back':'TM背面','multi':'3方向'}[h.viewpoint] || h.viewpoint);
 return `
 <tr>
 <td style="font-size:11px;">${new Date(h.timestamp).toLocaleString('ja-JP', {year:'numeric',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})}</td>
@@ -5102,6 +5822,7 @@ ${normalSummaryHTML}
 ${metricSummaryHTML}
 ${tugSummaryHTML}
 ${cs30SummaryHTML}
+${postureSummaryHTML}
 ${adviceSummaryHTML}
 <h2>直近の測定記録（最新30件）</h2>
 <table>
