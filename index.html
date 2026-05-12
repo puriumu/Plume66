@@ -3980,6 +3980,12 @@ evaluation = '下肢筋力低下が示唆されます';
 riskLevel = 'high';
 }
 
+// ============== 質的評価（5項目） ==============
+const qualityMetrics = analyzeCS30Quality(frames, hipYs, minY, maxY, yRange, transitions);
+const qualityOverall = qualityMetrics.length > 0
+? Math.round(mean(qualityMetrics.map(m => m.score)))
+: 0;
+
 return {
 isCS30: true,
 standUpCount,
@@ -3992,9 +3998,219 @@ age,
 gender,
 ref15,
 ref30,
+qualityMetrics,
+qualityOverall,
 timestamp: Date.now(),
 pains: Array.from(selectedPains)
 };
+}
+
+// CS-30の質的評価: 横からの動画で評価できる5項目
+function analyzeCS30Quality(frames, hipYs, minY, maxY, yRange, transitions) {
+if (frames.length < 10 || yRange < 0.05) return [];
+
+const metrics = [];
+
+// 立位/座位の判定閾値
+const standThreshold = minY + yRange * 0.3;
+const sitThreshold = minY + yRange * 0.7;
+
+// ===== 1. 体幹前傾角度 =====
+// 立ち上がり遷移の瞬間（座位から立位の中間付近）での体幹角度を測定
+// 体幹角度 = 肩中点と腰中点を結んだ線が、鉛直線となす角度
+const trunkAngles = [];
+for (let i = 1; i < frames.length - 1; i++) {
+const yPrev = hipYs[i - 1], yCurr = hipYs[i], yNext = hipYs[i + 1];
+// 座位から立位への遷移中（腰が大きく上昇中、かつまだ立ちきっていない）
+if (yCurr > standThreshold && yCurr < sitThreshold && (yPrev - yNext) > yRange * 0.02) {
+const lm = frames[i].lm;
+const sh = midpoint(lm[L.L_SHOULDER], lm[L.R_SHOULDER]);
+const hp = midpoint(lm[L.L_HIP], lm[L.R_HIP]);
+// 鉛直からの傾き（前傾なら正の値）
+const dx = sh.x - hp.x;
+const dy = hp.y - sh.y;
+if (dy > 0) {
+const angle = Math.abs(Math.atan2(dx, dy) * 180 / Math.PI);
+trunkAngles.push(angle);
+}
+}
+}
+
+const avgTrunkAngle = trunkAngles.length > 0 ? mean(trunkAngles) : 0;
+// 理想: 30〜45度の前傾。20度未満（前傾不足）または60度超（過剰）は減点
+let trunkScore;
+if (avgTrunkAngle >= 25 && avgTrunkAngle <= 50) {
+trunkScore = 100;
+} else if (avgTrunkAngle >= 15 && avgTrunkAngle < 25) {
+trunkScore = 70 + (avgTrunkAngle - 15); // 70〜80
+} else if (avgTrunkAngle > 50 && avgTrunkAngle <= 65) {
+trunkScore = 100 - (avgTrunkAngle - 50) * 2; // 100〜70
+} else if (avgTrunkAngle < 15) {
+trunkScore = Math.max(30, 70 - (15 - avgTrunkAngle) * 3);
+} else {
+trunkScore = Math.max(30, 70 - (avgTrunkAngle - 65) * 2);
+}
+metrics.push({
+key: 'cs30_trunk',
+name: '体幹前傾角度',
+sub: 'TRUNK FORWARD LEAN',
+score: Math.round(trunkScore),
+raw: avgTrunkAngle,
+advice: avgTrunkAngle < 20
+? '前傾が不足しています。立ち上がる際は「お辞儀をするように」前に体を倒すと膝への負担が減ります。'
+: avgTrunkAngle > 55
+? '前傾が過剰です。代償動作になっている可能性があります。下肢筋力強化で安定した立ち上がりを目指しましょう。'
+: '適切な体幹前傾が保たれています。'
+});
+
+// ===== 2. 手の使用頻度 =====
+// 立ち上がり時に手首が膝周辺の高さで停滞しているか
+// 各立ち上がり遷移で、手首のy座標と膝のy座標を比較
+let handUseCount = 0;
+let transitionCount = 0;
+for (let i = 1; i < frames.length; i++) {
+const yPrev = hipYs[i - 1], yCurr = hipYs[i];
+if (yPrev > sitThreshold && yCurr < sitThreshold) {
+// 座位→立ち上がり開始の瞬間
+transitionCount++;
+const lm = frames[i].lm;
+const lWrist = lm[15], rWrist = lm[16];
+const lKnee = lm[25], rKnee = lm[26];
+// 手首が膝の近くにあるか（手で膝を押している/手すりにつかまっている）
+const lUsing = lWrist && lKnee && Math.abs(lWrist.y - lKnee.y) < 0.1 && (lWrist.v ?? 1) > 0.4;
+const rUsing = rWrist && rKnee && Math.abs(rWrist.y - rKnee.y) < 0.1 && (rWrist.v ?? 1) > 0.4;
+if (lUsing || rUsing) handUseCount++;
+}
+}
+const handUseRate = transitionCount > 0 ? handUseCount / transitionCount : 0;
+// 0%なら100点、100%なら40点
+const handScore = Math.round(100 - handUseRate * 60);
+metrics.push({
+key: 'cs30_hand',
+name: '手の使用頻度',
+sub: 'HAND ASSIST FREQUENCY',
+score: handScore,
+raw: handUseRate,
+advice: handUseRate > 0.7
+? '頻繁に手すりや膝に手をついて立ち上がっています。下肢筋力訓練を継続し、徐々に手を使わない練習を取り入れましょう。'
+: handUseRate > 0.3
+? '時々手の補助を使っています。手の補助なしでの立ち上がりも練習に取り入れていきましょう。'
+: '手の補助に頼らず立ち上がれています。下肢筋力が十分に保たれている証拠です。'
+});
+
+// ===== 3. 動作の速度・滑らかさ =====
+// 各立ち上がり1回あたりの所要時間と、そのばらつき
+const cycleTimes = [];
+let lastStandUpTime = null;
+for (let i = 1; i < frames.length; i++) {
+const yPrev = hipYs[i - 1], yCurr = hipYs[i];
+if (yPrev > standThreshold && yCurr < standThreshold) {
+if (lastStandUpTime !== null) {
+cycleTimes.push(frames[i].t - lastStandUpTime);
+}
+lastStandUpTime = frames[i].t;
+}
+}
+const avgCycle = cycleTimes.length > 0 ? mean(cycleTimes) : 0;
+const cycleStd = cycleTimes.length > 1 ? std(cycleTimes) : 0;
+// 理想: 1.5〜2.5秒/回、ばらつき小
+let speedScore;
+if (avgCycle === 0) {
+speedScore = 50;
+} else if (avgCycle >= 1.2 && avgCycle <= 2.5) {
+speedScore = 100 - Math.min(40, (cycleStd / avgCycle) * 100);
+} else if (avgCycle < 1.2) {
+speedScore = Math.max(40, 80 - (1.2 - avgCycle) * 40);
+} else {
+speedScore = Math.max(40, 100 - (avgCycle - 2.5) * 20);
+}
+metrics.push({
+key: 'cs30_speed',
+name: '動作の速度・滑らかさ',
+sub: 'CYCLE RHYTHM',
+score: Math.round(speedScore),
+raw: avgCycle,
+advice: avgCycle === 0
+? '十分な立ち上がりサイクルが検出できませんでした。'
+: avgCycle > 3
+? '1回あたりの動作に時間がかかっています。下肢筋力やバランス能力の向上で改善が期待できます。'
+: cycleStd > avgCycle * 0.3
+? '動作のリズムが不規則です。等間隔で立ち座りができるよう、メトロノームに合わせる練習も有効です。'
+: '一定のリズムで立ち上がれています。'
+});
+
+// ===== 4. 着座時の制御 =====
+// 立位→座位の遷移時の腰の下降速度
+// 早すぎ（ストンと座る）は膝への衝撃が大きい
+const sitDownSpeeds = [];
+for (let i = 1; i < frames.length - 3; i++) {
+const yCurr = hipYs[i];
+const yNext3 = hipYs[Math.min(i + 3, frames.length - 1)];
+// 立位から座位への遷移開始
+if (yCurr < standThreshold && yNext3 > sitThreshold) {
+const dt = frames[Math.min(i + 3, frames.length - 1)].t - frames[i].t;
+const dy = yNext3 - yCurr;
+if (dt > 0) sitDownSpeeds.push(dy / dt); // y/秒
+}
+}
+const avgSitDownSpeed = sitDownSpeeds.length > 0 ? mean(sitDownSpeeds) : 0;
+// 理想: 0.15〜0.3 y/秒（コントロールされた下降）
+let controlScore;
+if (avgSitDownSpeed === 0) {
+controlScore = 50;
+} else if (avgSitDownSpeed <= 0.3) {
+controlScore = 100;
+} else if (avgSitDownSpeed <= 0.5) {
+controlScore = 100 - (avgSitDownSpeed - 0.3) * 150;
+} else {
+controlScore = Math.max(40, 70 - (avgSitDownSpeed - 0.5) * 100);
+}
+metrics.push({
+key: 'cs30_control',
+name: '着座時の制御',
+sub: 'CONTROLLED DESCENT',
+score: Math.round(controlScore),
+raw: avgSitDownSpeed,
+advice: avgSitDownSpeed > 0.5
+? '勢いよく座っています。膝への衝撃が大きく、長期的に膝関節を痛める原因になります。ゆっくり座る練習（カウント3で座る）を意識しましょう。'
+: avgSitDownSpeed > 0.3
+? '少し座る速度が速めです。よりゆっくりとした着座を意識すると、大腿前面の筋力向上にもつながります。'
+: 'コントロールされた着座ができています。'
+});
+
+// ===== 5. 立位時の前後ぐらつき =====
+// 立位状態のフレームで、肩-腰のx座標がぶれていないか
+const standingFrames = frames.filter((f, idx) => hipYs[idx] < standThreshold);
+let postureSwayScore = 100;
+if (standingFrames.length > 5) {
+// 各立位フレームで肩中点x座標を取得
+const shoulderXs = standingFrames.map(f => midpoint(f.lm[L.L_SHOULDER], f.lm[L.R_SHOULDER]).x);
+const hipXs = standingFrames.map(f => midpoint(f.lm[L.L_HIP], f.lm[L.R_HIP]).x);
+// 肩と腰のx座標のずれのばらつき
+const tilts = shoulderXs.map((sx, i) => sx - hipXs[i]);
+const swayStd = std(tilts);
+// 理想: swayStd < 0.01。それより大きいと不安定
+if (swayStd < 0.01) {
+postureSwayScore = 100;
+} else if (swayStd < 0.025) {
+postureSwayScore = 100 - (swayStd - 0.01) * 2000; // 100〜70
+} else {
+postureSwayScore = Math.max(40, 70 - (swayStd - 0.025) * 1500);
+}
+}
+metrics.push({
+key: 'cs30_sway',
+name: '立位時の前後ぐらつき',
+sub: 'STANDING STABILITY',
+score: Math.round(postureSwayScore),
+advice: postureSwayScore < 60
+? '立位時に前後のぐらつきが目立ちます。バランス訓練（片脚立ち、タンデム立位）を週3回行いましょう。'
+: postureSwayScore < 80
+? '立位時に多少のぐらつきがあります。体幹トレーニングで改善が期待できます。'
+: '立位姿勢が安定しています。'
+});
+
+return metrics;
 }
 
 function showCS30Results(cs30) {
@@ -4030,8 +4246,28 @@ document.querySelector('.score-number .max').textContent = '回 / 15秒間';
 $('scoreGrade').textContent = cs30.evaluation;
 $('ageCompare').textContent = '';
 
+// 質的評価セクション
+let qualityHTML = '';
+if (cs30.qualityMetrics && cs30.qualityMetrics.length > 0) {
+qualityHTML = `
+<div style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:0.15em;color:var(--ink-soft);margin:18px 0 6px;">— 立ち上がり方の質的評価（総合: ${cs30.qualityOverall}点）</div>
+`;
+cs30.qualityMetrics.forEach(m => {
+const scoreColor = m.score >= 80 ? 'var(--accent)' : m.score >= 60 ? 'var(--ink)' : 'var(--rust)';
+qualityHTML += `
+<div class="metric">
+<div class="metric-name">${m.name}<span>${m.sub || ''}</span></div>
+<div style="display:flex;align-items:center;gap:14px;">
+<div class="metric-score" style="color:${scoreColor};">${m.score}</div>
+</div>
+</div>
+`;
+});
+}
+
 // 詳細
 $('metricsList').innerHTML = `
+<div style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:0.15em;color:var(--ink-soft);margin-bottom:6px;">— 立ち上がり回数（量的評価）</div>
 <div class="metric">
 <div class="metric-name">立ち上がり回数（実測15秒）<span>STAND COUNT (15s)</span></div>
 <div style="display:flex;align-items:center;gap:14px;">
@@ -4056,6 +4292,7 @@ $('metricsList').innerHTML = `
 <div class="metric-score">${cs30.ref30} 回</div>
 </div>
 </div>
+${qualityHTML}
 `;
 
 // 評価カード
@@ -4074,20 +4311,32 @@ $('riskDesc').textContent = r.desc;
 $('multiFindingsBox').innerHTML = '';
 $('romBox').innerHTML = '';
 
-// アドバイス
+// アドバイス: 量的評価 + 質的評価の低い項目に応じて
 const adviceList = [];
+
+// 量的（回数）に基づくアドバイス
 if (cs30.riskLevel !== 'normal') {
 adviceList.push({
 title: '椅子立ち上がり訓練',
 body: '安定した椅子から、ゆっくり立ち上がり→ゆっくり座る、を10回×3セット、週3回行いましょう。慣れてきたら手を使わずに行うと効果が高まります。',
 youtube: 'https://www.youtube.com/results?search_query=chair+stand+exercise+seniors'
 });
+}
+
+// 質的評価に基づくアドバイス（最も低い項目TOP2）
+if (cs30.qualityMetrics && cs30.qualityMetrics.length > 0) {
+const sortedQuality = [...cs30.qualityMetrics].sort((a, b) => a.score - b.score).slice(0, 2);
+sortedQuality.forEach(m => {
+if (m.score < 75) {
 adviceList.push({
-title: 'スクワット（自体重）',
-body: '足を肩幅に開き、椅子に座る動作をイメージして膝を曲げます。10回×2セットからスタートし、徐々に回数を増やします。膝が痛む場合は浅めに行ってください。',
-youtube: 'https://www.youtube.com/results?search_query=bodyweight+squat+for+seniors'
+title: m.name + 'の改善',
+body: m.advice,
+youtube: null
 });
 }
+});
+}
+
 if (cs30.riskLevel === 'high') {
 adviceList.push({
 title: '専門家への相談',
@@ -4097,8 +4346,8 @@ youtube: null
 }
 if (adviceList.length === 0) {
 adviceList.push({
-title: '優れた下肢筋力',
-body: '年齢以上の下肢筋力をお持ちです。継続して、有酸素運動と筋力トレーニングをバランスよく行い、現在の機能を維持しましょう。',
+title: '優れた下肢筋力と動作品質',
+body: '回数・動作の質ともに良好です。継続して、有酸素運動と筋力トレーニングをバランスよく行い、現在の機能を維持しましょう。',
 youtube: null
 });
 }
@@ -4136,6 +4385,10 @@ cs30Projected30: cs30.projected30,
 cs30Evaluation: cs30.evaluation,
 cs30RiskLevel: cs30.riskLevel,
 cs30Ref15: cs30.ref15,
+cs30QualityOverall: cs30.qualityOverall,
+cs30QualityMetrics: cs30.qualityMetrics ? cs30.qualityMetrics.map(m => ({
+key: m.key, name: m.name, score: m.score
+})) : [],
 // 互換性のため
 overall: Math.min(100, Math.max(0, Math.round((cs30.standUpCount / Math.max(cs30.ref15, 1)) * 80))),
 metrics: [],
@@ -5448,7 +5701,7 @@ const vp = h.isTug ? 'TUG'
 const subInfo = h.isTug
 ? `${vp} · ${h.tugTotalTime}秒 / ${h.tugEvaluation}`
 : h.isCS30
-? `${vp} · ${h.cs30Count}回(15秒) / ${h.cs30Evaluation}`
+? `${vp} · ${h.cs30Count}回 / ${h.cs30Evaluation}${h.cs30QualityOverall != null ? ' / 動作品質: ' + h.cs30QualityOverall + '点' : ''}`
 : h.isPosture
 ? `${vp} · 横${h.postureSideOverall||'—'} / 前${h.postureFrontOverall||'—'} / 後${h.postureBackOverall||'—'}`
 : `${vp} · ケイデンス: ${h.cadence || '—'} 歩/分`;
