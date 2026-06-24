@@ -1447,12 +1447,21 @@ const id = getCurrentUserId();
 return users.find(u => u.id === id) || null;
 }
 function updateCurrentUser(updateFn) {
+try {
 const users = getUsers();
 const id = getCurrentUserId();
 const idx = users.findIndex(u => u.id === id);
-if (idx === -1) return;
+if (idx === -1) {
+console.warn('updateCurrentUser: 現在のユーザーが見つかりません', id);
+return;
+}
+if (!users[idx].history) users[idx].history = [];
 updateFn(users[idx]);
 saveUsers(users);
+} catch (err) {
+console.error('updateCurrentUserエラー:', err);
+throw err;
+}
 }
 
 function refreshUserBar() {
@@ -5728,8 +5737,8 @@ drawFrame(0);
 
 // ============== Per-user history ==============
 async function saveToHistory(result) {
+try {
 const measurementId = Date.now();
-// 動画を保存（設定がONの場合）
 if (getAppSettings().saveVideo && currentVideoFile) {
 try { await videoStore.save(measurementId, currentVideoFile); }
 catch (err) { console.warn('動画保存失敗:', err); }
@@ -5739,24 +5748,41 @@ const staffName = $('staffSelect').value || null;
 const note = $('measureNote').value.trim() || '';
 
 updateCurrentUser(u => {
+// history配列が初期化されていない場合の保護
+if (!u.history) u.history = [];
+
+const safeMetrics = Array.isArray(result.metrics)
+? result.metrics.map(m => ({
+key: m.key || '',
+score: m.score || 0,
+name: m.name || ''
+}))
+: [];
+
 u.history.push({
 id: measurementId,
-timestamp: result.timestamp,
-overall: result.overall,
-metrics: result.metrics.map(m => ({ key: m.key, score: m.score, name: m.name })),
-cadence: result.cadence,
-viewpoint: result.viewpoint,
+timestamp: result.timestamp || Date.now(),
+overall: result.overall || 0,
+metrics: safeMetrics,
+cadence: result.cadence || 0,
+viewpoint: result.viewpoint || 'side',
 isTreadmill: result.isTreadmill || false,
 isBack: result.isBack || false,
 isMulti: result.isMulti || false,
+isMulti2: result.isMulti2 || false,
 rom: result.rom || null,
 staff: staffName,
 note,
 hasVideo: getAppSettings().saveVideo,
-pains: result.pains
+pains: result.pains || []
 });
 if (u.history.length > 200) u.history.shift();
 });
+console.log('履歴に保存しました:', result.viewpoint, result.overall);
+} catch (err) {
+console.error('saveToHistoryエラー:', err);
+alert('履歴の保存に失敗しました: ' + err.message);
+}
 }
 
 function renderHistory() {
