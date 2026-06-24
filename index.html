@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-
 <html lang="ja">
 <head>
 <meta charset="UTF-8" />
@@ -79,8 +78,8 @@ transition: all 0.2s;
 
 /* user switcher bar */
 .user-bar {
-background: var(–paper-warm);
-border: 1px solid var(–line);
+background: var(--paper-warm);
+border: 1px solid var(--line);
 border-radius: 4px;
 padding: 12px 16px;
 margin-bottom: 24px;
@@ -88,28 +87,28 @@ display: flex; align-items: center; gap: 12px;
 flex-wrap: wrap;
 }
 .user-bar .label {
-font-family: ‘JetBrains Mono’, monospace;
+font-family: 'JetBrains Mono', monospace;
 font-size: 10px; letter-spacing: 0.15em;
-color: var(–ink-soft); text-transform: uppercase;
+color: var(--ink-soft); text-transform: uppercase;
 }
 .user-bar select {
 flex: 1;
 min-width: 180px;
 padding: 8px 12px;
-border: 1px solid var(–line);
-background: var(–paper);
-color: var(–ink);
-font-family: ‘Inter Tight’, sans-serif;
+border: 1px solid var(--line);
+background: var(--paper);
+color: var(--ink);
+font-family: 'Inter Tight', sans-serif;
 font-size: 14px;
 border-radius: 2px;
 }
 .user-bar .current-name {
-font-family: ‘Fraunces’, serif;
+font-family: 'Fraunces', serif;
 font-size: 18px;
 font-weight: 500;
 }
 .user-bar-empty {
-color: var(–rust);
+color: var(--rust);
 font-size: 13px;
 font-weight: 500;
 }
@@ -117,48 +116,48 @@ font-weight: 500;
 .nav-tabs {
 display: flex; gap: 0;
 margin-bottom: 32px;
-border-bottom: 1px solid var(–line);
+border-bottom: 1px solid var(--line);
 overflow-x: auto;
 -webkit-overflow-scrolling: touch;
 }
 .nav-tab {
 background: none; border: none;
 padding: 12px 18px;
-font-family: ‘Inter Tight’, sans-serif;
+font-family: 'Inter Tight', sans-serif;
 font-size: 14px; font-weight: 500;
-color: var(–ink-soft);
+color: var(--ink-soft);
 cursor: pointer;
 border-bottom: 2px solid transparent;
 transition: all 0.2s;
 white-space: nowrap;
 }
-.nav-tab.active { color: var(–ink); border-bottom-color: var(–accent); }
-.nav-tab:hover { color: var(–ink); }
+.nav-tab.active { color: var(--ink); border-bottom-color: var(--accent); }
+.nav-tab:hover { color: var(--ink); }
 
 .view { display: none; }
 .view.active { display: block; }
 
 .hero { margin-bottom: 36px; max-width: 700px; }
 .hero h1 {
-font-family: ‘Fraunces’, serif;
+font-family: 'Fraunces', serif;
 font-weight: 300;
 font-size: clamp(34px, 5vw, 56px);
 line-height: 1.05;
 letter-spacing: -0.025em;
 margin-bottom: 16px;
 }
-.hero h1 em { font-style: italic; color: var(–accent); }
-.hero p { font-size: 16px; color: var(–ink-soft); max-width: 540px; }
+.hero h1 em { font-style: italic; color: var(--accent); }
+.hero p { font-size: 16px; color: var(--ink-soft); max-width: 540px; }
 
 .setup-card {
-background: var(–paper-warm);
-border: 1px solid var(–line);
+background: var(--paper-warm);
+border: 1px solid var(--line);
 border-radius: 4px;
 padding: 24px;
 margin-bottom: 24px;
 }
 .setup-card h3 {
-font-family: ‘Fraunces’, serif;
+font-family: 'Fraunces', serif;
 font-weight: 400; font-size: 20px;
 margin-bottom: 16px;
 }
@@ -171,20 +170,20 @@ margin-bottom: 14px;
 @media (max-width: 600px) { .setup-row { grid-template-columns: 1fr; } }
 .field label {
 display: block;
-font-family: ‘JetBrains Mono’, monospace;
+font-family: 'JetBrains Mono', monospace;
 font-size: 10px;
 letter-spacing: 0.1em;
-color: var(–ink-soft);
+color: var(--ink-soft);
 margin-bottom: 6px;
 text-transform: uppercase;
 }
 .field select, .field input {
 width: 100%;
 padding: 10px 12px;
-border: 1px solid var(–line);
-background: var(–paper);
-color: var(–ink);
-font-family: ‘Inter Tight’, sans-serif;
+border: 1px solid var(--line);
+background: var(--paper);
+color: var(--ink);
+font-family: 'Inter Tight', sans-serif;
 font-size: 14px;
 border-radius: 2px;
 }
@@ -195,8 +194,8 @@ gap: 8px;
 margin-top: 6px;
 }
 .pain-chip {
-background: var(–paper);
-border: 1px solid var(–line);
+background: var(--paper);
+border: 1px solid var(--line);
 padding: 8px 10px;
 border-radius: 2px;
 font-size: 13px;
@@ -205,14 +204,14 @@ text-align: center;
 transition: all 0.2s;
 }
 .pain-chip.active {
-background: var(–rust);
-color: var(–paper);
-border-color: var(–rust);
+background: var(--rust);
+color: var(--paper);
+border-color: var(--rust);
 }
 
 .stage {
-background: var(–paper-warm);
-border: 1px solid var(–line);
+background: var(--paper-warm);
+border: 1px solid var(--line);
 border-radius: 4px;
 overflow: hidden;
 box-shadow: 0 1px 0 rgba(255, 255, 255, 0.6) inset, 0 20px 40px -30px rgba(26, 35, 50, 0.3);
@@ -227,7 +226,7 @@ position: relative;
 }
 .upload-zone:hover, .upload-zone.drag {
 background: rgba(82, 183, 136, 0.05);
-border-color: var(–accent-bright);
+border-color: var(--accent-bright);
 }
 .upload-zone.disabled {
 opacity: 0.5;
@@ -236,25 +235,25 @@ pointer-events: none;
 .upload-icon {
 width: 56px; height: 56px;
 margin: 0 auto 16px;
-border: 1.5px solid var(–ink);
+border: 1.5px solid var(--ink);
 border-radius: 50%;
 display: flex; align-items: center; justify-content: center;
-font-family: ‘Fraunces’, serif;
+font-family: 'Fraunces', serif;
 font-size: 28px; font-weight: 300;
 transform: rotate(-4deg);
 transition: transform 0.4s ease;
 }
 .upload-zone:hover .upload-icon { transform: rotate(0deg) scale(1.05); }
 .upload-zone h3 {
-font-family: ‘Fraunces’, serif; font-weight: 400;
+font-family: 'Fraunces', serif; font-weight: 400;
 font-size: 22px; margin-bottom: 6px;
 }
-.upload-zone p { color: var(–ink-soft); font-size: 14px; }
+.upload-zone p { color: var(--ink-soft); font-size: 14px; }
 .upload-zone .specs {
 margin-top: 16px;
-font-family: ‘JetBrains Mono’, monospace;
+font-family: 'JetBrains Mono', monospace;
 font-size: 10px; letter-spacing: 0.1em;
-color: var(–ink-soft); text-transform: uppercase;
+color: var(--ink-soft); text-transform: uppercase;
 }
 #fileInput { display: none; }
 
@@ -265,23 +264,23 @@ margin-top: 16px;
 .take-dot {
 width: 28px; height: 28px;
 border-radius: 50%;
-border: 1.5px solid var(–ink);
+border: 1.5px solid var(--ink);
 display: flex; align-items: center; justify-content: center;
-font-family: ‘JetBrains Mono’, monospace;
+font-family: 'JetBrains Mono', monospace;
 font-size: 11px;
 font-weight: 500;
 background: transparent;
-color: var(–ink);
+color: var(--ink);
 transition: all 0.3s;
 }
 .take-dot.done {
-background: var(–accent);
-border-color: var(–accent);
-color: var(–paper);
+background: var(--accent);
+border-color: var(--accent);
+color: var(--paper);
 }
 .take-dot.current {
-border-color: var(–accent-bright);
-background: var(–paper);
+border-color: var(--accent-bright);
+background: var(--paper);
 }
 
 .analysis { display: none; }
@@ -300,7 +299,7 @@ object-fit: contain;
 .frame-label {
 position: absolute;
 top: 14px; left: 14px;
-font-family: ‘JetBrains Mono’, monospace;
+font-family: 'JetBrains Mono', monospace;
 font-size: 10px;
 color: rgba(255,255,255,0.85);
 letter-spacing: 0.15em;
@@ -321,44 +320,44 @@ background: rgba(26, 35, 50, 0.1);
 }
 .progress-bar > div {
 height: 100%;
-background: var(–accent);
+background: var(--accent);
 width: 0%;
 transition: width 0.2s ease;
 }
 .toolbar {
 display: flex; justify-content: space-between; align-items: center;
 padding: 14px 20px;
-border-top: 1px solid var(–line);
-font-family: ‘JetBrains Mono’, monospace;
+border-top: 1px solid var(--line);
+font-family: 'JetBrains Mono', monospace;
 font-size: 11px;
-color: var(–ink-soft);
+color: var(--ink-soft);
 flex-wrap: wrap; gap: 8px;
 }
 .btn {
-background: var(–ink);
-color: var(–paper);
+background: var(--ink);
+color: var(--paper);
 border: none;
 padding: 10px 18px;
-font-family: ‘Inter Tight’, sans-serif;
+font-family: 'Inter Tight', sans-serif;
 font-size: 13px; font-weight: 500;
 cursor: pointer;
 border-radius: 2px;
 transition: all 0.2s;
 }
-.btn:hover { background: var(–accent); }
+.btn:hover { background: var(--accent); }
 .btn-ghost {
-background: transparent; color: var(–ink);
-border: 1px solid var(–ink);
+background: transparent; color: var(--ink);
+border: 1px solid var(--ink);
 }
-.btn-ghost:hover { background: var(–ink); color: var(–paper); }
-.btn-accent { background: var(–accent); }
-.btn-accent:hover { background: var(–accent-bright); }
-.btn-danger { background: var(–rust); }
+.btn-ghost:hover { background: var(--ink); color: var(--paper); }
+.btn-accent { background: var(--accent); }
+.btn-accent:hover { background: var(--accent-bright); }
+.btn-danger { background: var(--rust); }
 .btn-danger:hover { background: #a04e3a; }
 
 .guide-check {
 background: rgba(212, 165, 116, 0.15);
-border-left: 3px solid var(–gold);
+border-left: 3px solid var(--gold);
 padding: 14px 18px;
 margin: 16px 0;
 font-size: 14px;
@@ -366,10 +365,10 @@ border-radius: 2px;
 }
 .guide-check.success {
 background: rgba(82, 183, 136, 0.1);
-border-color: var(–accent-bright);
+border-color: var(--accent-bright);
 }
 .guide-check h4 {
-font-family: ‘Fraunces’, serif; font-weight: 500;
+font-family: 'Fraunces', serif; font-weight: 500;
 font-size: 15px; margin-bottom: 4px;
 }
 
@@ -389,7 +388,7 @@ display: grid;
 grid-template-columns: 1fr 1.4fr;
 gap: 50px;
 padding: 36px 0;
-border-bottom: 1px solid var(–line);
+border-bottom: 1px solid var(--line);
 align-items: center;
 }
 @media (max-width: 720px) {
@@ -406,7 +405,7 @@ margin: 0 auto;
 fill: none; stroke: rgba(26, 35, 50, 0.08); stroke-width: 6;
 }
 .score-circle .fg-ring {
-fill: none; stroke: var(–accent); stroke-width: 6;
+fill: none; stroke: var(--accent); stroke-width: 6;
 stroke-linecap: round;
 transition: stroke-dashoffset 1.8s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -415,29 +414,29 @@ position: absolute; inset: 0;
 display: flex; flex-direction: column; align-items: center; justify-content: center;
 }
 .score-number .num {
-font-family: ‘Fraunces’, serif; font-weight: 300;
+font-family: 'Fraunces', serif; font-weight: 300;
 font-size: 84px; line-height: 1;
 letter-spacing: -0.04em;
 }
 .score-number .max {
-font-family: ‘JetBrains Mono’, monospace;
-font-size: 11px; color: var(–ink-soft);
+font-family: 'JetBrains Mono', monospace;
+font-size: 11px; color: var(--ink-soft);
 letter-spacing: 0.15em; margin-top: 4px;
 }
 .score-grade {
 margin-top: 14px;
-font-family: ‘Fraunces’, serif; font-style: italic;
+font-family: 'Fraunces', serif; font-style: italic;
 font-size: 22px;
 }
 .age-comparison {
 margin-top: 8px;
-font-family: ‘JetBrains Mono’, monospace;
+font-family: 'JetBrains Mono', monospace;
 font-size: 11px;
-color: var(–accent);
+color: var(--accent);
 letter-spacing: 0.05em;
 }
 .breakdown h2 {
-font-family: ‘Fraunces’, serif; font-weight: 300;
+font-family: 'Fraunces', serif; font-weight: 300;
 font-size: 26px; letter-spacing: -0.02em;
 margin-bottom: 20px;
 }
@@ -446,15 +445,15 @@ display: grid;
 grid-template-columns: 1fr auto;
 gap: 16px;
 padding: 12px 0;
-border-bottom: 1px solid var(–line);
+border-bottom: 1px solid var(--line);
 align-items: center;
 }
 .metric:last-child { border-bottom: none; }
 .metric-name { font-size: 14px; font-weight: 500; }
 .metric-name span {
 display: block;
-font-family: ‘JetBrains Mono’, monospace;
-font-size: 10px; color: var(–ink-soft);
+font-family: 'JetBrains Mono', monospace;
+font-size: 10px; color: var(--ink-soft);
 font-weight: 400; letter-spacing: 0.05em;
 margin-top: 3px; text-transform: uppercase;
 }
@@ -465,87 +464,87 @@ position: relative; border-radius: 2px;
 overflow: hidden;
 }
 .metric-bar > div {
-height: 100%; background: var(–accent);
+height: 100%; background: var(--accent);
 width: 0%;
 transition: width 1.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .metric-score {
-font-family: ‘JetBrains Mono’, monospace;
+font-family: 'JetBrains Mono', monospace;
 font-size: 13px; font-weight: 500;
 min-width: 36px; text-align: right;
 }
 
-.risk-section { padding: 28px 0; border-bottom: 1px solid var(–line); }
+.risk-section { padding: 28px 0; border-bottom: 1px solid var(--line); }
 .risk-card {
-background: var(–paper-warm);
-border-left: 3px solid var(–accent);
+background: var(--paper-warm);
+border-left: 3px solid var(--accent);
 padding: 18px 22px;
 border-radius: 2px;
 }
-.risk-card.warning { border-left-color: var(–gold); }
-.risk-card.danger { border-left-color: var(–rust); }
+.risk-card.warning { border-left-color: var(--gold); }
+.risk-card.danger { border-left-color: var(--rust); }
 .risk-label {
-font-family: ‘JetBrains Mono’, monospace;
+font-family: 'JetBrains Mono', monospace;
 font-size: 10px; letter-spacing: 0.2em;
 text-transform: uppercase;
-color: var(–ink-soft);
+color: var(--ink-soft);
 margin-bottom: 4px;
 }
 .risk-level {
-font-family: ‘Fraunces’, serif;
+font-family: 'Fraunces', serif;
 font-size: 22px; margin-bottom: 8px;
 }
-.risk-desc { font-size: 14px; color: var(–ink-soft); }
+.risk-desc { font-size: 14px; color: var(--ink-soft); }
 
-.advice-section { padding: 36px 0; border-bottom: 1px solid var(–line); }
+.advice-section { padding: 36px 0; border-bottom: 1px solid var(--line); }
 .advice-section .label {
-font-family: ‘JetBrains Mono’, monospace;
+font-family: 'JetBrains Mono', monospace;
 font-size: 10px; letter-spacing: 0.2em;
-color: var(–accent); text-transform: uppercase;
+color: var(--accent); text-transform: uppercase;
 margin-bottom: 10px;
 }
 .advice-section h2 {
-font-family: ‘Fraunces’, serif; font-weight: 300;
+font-family: 'Fraunces', serif; font-weight: 300;
 font-size: 32px; letter-spacing: -0.02em;
 margin-bottom: 28px; max-width: 600px;
 line-height: 1.15;
 }
-.advice-section h2 em { font-style: italic; color: var(–accent); }
+.advice-section h2 em { font-style: italic; color: var(--accent); }
 .advice-card {
 padding: 22px 0;
-border-top: 1px solid var(–line);
+border-top: 1px solid var(--line);
 display: grid;
 grid-template-columns: 60px 1fr;
 gap: 16px;
 }
-.advice-card:last-child { border-bottom: 1px solid var(–line); }
+.advice-card:last-child { border-bottom: 1px solid var(--line); }
 .advice-num {
-font-family: ‘Fraunces’, serif; font-weight: 300;
+font-family: 'Fraunces', serif; font-weight: 300;
 font-style: italic; font-size: 30px;
-color: var(–accent); line-height: 1;
+color: var(--accent); line-height: 1;
 }
 .advice-content h4 {
-font-family: ‘Fraunces’, serif; font-weight: 500;
+font-family: 'Fraunces', serif; font-weight: 500;
 font-size: 18px; margin-bottom: 6px;
 }
 .advice-content p {
-color: var(–ink-soft); font-size: 14.5px;
+color: var(--ink-soft); font-size: 14.5px;
 line-height: 1.6; margin-bottom: 8px;
 }
 .exercise-link {
 display: inline-block;
-font-family: ‘JetBrains Mono’, monospace;
+font-family: 'JetBrains Mono', monospace;
 font-size: 11px;
-color: var(–accent);
+color: var(--accent);
 text-decoration: none;
 letter-spacing: 0.05em;
-border-bottom: 1px solid var(–accent);
+border-bottom: 1px solid var(--accent);
 padding-bottom: 1px;
 }
 
-.review-section { padding: 28px 0; border-bottom: 1px solid var(–line); }
+.review-section { padding: 28px 0; border-bottom: 1px solid var(--line); }
 .review-section h2 {
-font-family: ‘Fraunces’, serif; font-weight: 300;
+font-family: 'Fraunces', serif; font-weight: 300;
 font-size: 26px; margin-bottom: 16px;
 }
 .review-frame-wrap {
@@ -563,7 +562,7 @@ object-fit: contain;
 display: flex; gap: 10px; align-items: center;
 margin-top: 14px; flex-wrap: wrap;
 }
-.review-controls input[type=“range”] { flex: 1; min-width: 200px; }
+.review-controls input[type="range"] { flex: 1; min-width: 200px; }
 .review-warning {
 position: absolute; bottom: 10px; left: 10px; right: 10px;
 background: rgba(193, 101, 76, 0.85);
@@ -577,18 +576,18 @@ display: none;
 
 .error-msg {
 background: rgba(193, 101, 76, 0.1);
-border-left: 3px solid var(–rust);
+border-left: 3px solid var(--rust);
 padding: 14px 18px;
 margin: 16px 0;
 font-size: 14px;
-color: var(–rust);
+color: var(--rust);
 border-radius: 2px;
 }
 
 .history-empty {
 text-align: center;
 padding: 60px 20px;
-color: var(–ink-soft);
+color: var(--ink-soft);
 }
 .history-empty p { margin-bottom: 16px; font-size: 15px; }
 .history-stat {
@@ -599,63 +598,63 @@ margin-bottom: 28px;
 }
 @media (max-width: 600px) { .history-stat { grid-template-columns: 1fr; } }
 .stat-card {
-background: var(–paper-warm);
-border: 1px solid var(–line);
+background: var(--paper-warm);
+border: 1px solid var(--line);
 padding: 18px;
 border-radius: 2px;
 }
 .stat-card .label {
-font-family: ‘JetBrains Mono’, monospace;
+font-family: 'JetBrains Mono', monospace;
 font-size: 10px; letter-spacing: 0.15em;
-color: var(–ink-soft); text-transform: uppercase;
+color: var(--ink-soft); text-transform: uppercase;
 margin-bottom: 6px;
 }
 .stat-card .value {
-font-family: ‘Fraunces’, serif; font-weight: 300;
+font-family: 'Fraunces', serif; font-weight: 300;
 font-size: 36px; line-height: 1;
 }
 .stat-card .delta {
-font-family: ‘JetBrains Mono’, monospace;
+font-family: 'JetBrains Mono', monospace;
 font-size: 11px; margin-top: 4px;
 }
-.stat-card .delta.up { color: var(–accent); }
-.stat-card .delta.down { color: var(–rust); }
+.stat-card .delta.up { color: var(--accent); }
+.stat-card .delta.down { color: var(--rust); }
 .chart-wrap {
-background: var(–paper-warm);
-border: 1px solid var(–line);
+background: var(--paper-warm);
+border: 1px solid var(--line);
 border-radius: 2px;
 padding: 20px;
 margin-bottom: 24px;
 }
 .chart-wrap h3 {
-font-family: ‘Fraunces’, serif; font-weight: 400;
+font-family: 'Fraunces', serif; font-weight: 400;
 font-size: 18px; margin-bottom: 12px;
 }
 #historyChart { width: 100%; height: 220px; }
 .history-list .history-item {
 padding: 14px 0;
-border-bottom: 1px solid var(–line);
+border-bottom: 1px solid var(--line);
 display: grid;
 grid-template-columns: 1fr auto auto;
 gap: 12px;
 align-items: center;
 }
 .hi-date {
-font-family: ‘JetBrains Mono’, monospace;
-font-size: 12px; color: var(–ink-soft);
+font-family: 'JetBrains Mono', monospace;
+font-size: 12px; color: var(--ink-soft);
 }
 .hi-score {
-font-family: ‘Fraunces’, serif;
+font-family: 'Fraunces', serif;
 font-size: 22px; font-weight: 400;
 }
 .hi-actions { display: flex; gap: 8px; }
 .hi-actions button {
-background: transparent; border: 1px solid var(–line);
+background: transparent; border: 1px solid var(--line);
 padding: 5px 10px; border-radius: 2px;
 font-size: 12px; cursor: pointer;
-color: var(–ink);
+color: var(--ink);
 }
-.hi-actions button:hover { background: var(–ink); color: var(–paper); }
+.hi-actions button:hover { background: var(--ink); color: var(--paper); }
 
 .badges-grid {
 display: grid;
@@ -663,8 +662,8 @@ grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
 gap: 14px;
 }
 .badge {
-background: var(–paper-warm);
-border: 1px solid var(–line);
+background: var(--paper-warm);
+border: 1px solid var(--line);
 padding: 16px 12px;
 border-radius: 2px;
 text-align: center;
@@ -673,24 +672,24 @@ opacity: 0.4;
 }
 .badge.earned {
 opacity: 1;
-border-color: var(–accent);
-background: linear-gradient(180deg, rgba(82,183,136,0.1) 0%, var(–paper-warm) 100%);
+border-color: var(--accent);
+background: linear-gradient(180deg, rgba(82,183,136,0.1) 0%, var(--paper-warm) 100%);
 }
 .badge-icon { font-size: 28px; margin-bottom: 6px; }
 .badge-name {
-font-family: ‘Fraunces’, serif;
+font-family: 'Fraunces', serif;
 font-size: 13px; font-weight: 500;
 margin-bottom: 4px;
 }
 .badge-desc {
-font-family: ‘JetBrains Mono’, monospace;
-font-size: 9px; color: var(–ink-soft);
+font-family: 'JetBrains Mono', monospace;
+font-size: 9px; color: var(--ink-soft);
 letter-spacing: 0.05em;
 }
 
 .goal-display {
-background: var(–paper-warm);
-border: 1px solid var(–line);
+background: var(--paper-warm);
+border: 1px solid var(--line);
 padding: 20px;
 border-radius: 2px;
 }
@@ -703,14 +702,14 @@ overflow: hidden;
 }
 .goal-bar > div {
 height: 100%;
-background: var(–accent);
+background: var(--accent);
 width: 0%;
 transition: width 1s ease;
 }
 .goal-meta {
 display: flex; justify-content: space-between;
-font-family: ‘JetBrains Mono’, monospace;
-font-size: 11px; color: var(–ink-soft);
+font-family: 'JetBrains Mono', monospace;
+font-size: 11px; color: var(--ink-soft);
 }
 
 .compare-grid {
@@ -720,40 +719,40 @@ gap: 16px;
 }
 @media (max-width: 600px) { .compare-grid { grid-template-columns: 1fr; } }
 .compare-side {
-background: var(–paper-warm);
-border: 1px solid var(–line);
+background: var(--paper-warm);
+border: 1px solid var(--line);
 padding: 16px;
 border-radius: 2px;
 text-align: center;
 }
 .compare-side .label {
-font-family: ‘JetBrains Mono’, monospace;
+font-family: 'JetBrains Mono', monospace;
 font-size: 10px; letter-spacing: 0.15em;
-color: var(–ink-soft); text-transform: uppercase;
+color: var(--ink-soft); text-transform: uppercase;
 margin-bottom: 8px;
 }
 .compare-side .score {
-font-family: ‘Fraunces’, serif;
+font-family: 'Fraunces', serif;
 font-size: 48px; font-weight: 300;
 line-height: 1;
 }
 .compare-side .date {
-font-family: ‘JetBrains Mono’, monospace;
-font-size: 11px; color: var(–ink-soft);
+font-family: 'JetBrains Mono', monospace;
+font-size: 11px; color: var(--ink-soft);
 margin-top: 4px;
 }
 .compare-arrow {
 text-align: center;
 margin: 16px 0;
-font-family: ‘Fraunces’, serif;
+font-family: 'Fraunces', serif;
 font-style: italic;
 font-size: 22px;
 }
 
 /* user list */
 .user-list-item {
-background: var(–paper-warm);
-border: 1px solid var(–line);
+background: var(--paper-warm);
+border: 1px solid var(--line);
 padding: 16px 20px;
 border-radius: 2px;
 margin-bottom: 10px;
@@ -763,45 +762,45 @@ gap: 12px;
 align-items: center;
 }
 .user-list-item.active-user {
-border-color: var(–accent);
-background: linear-gradient(90deg, rgba(82,183,136,0.1) 0%, var(–paper-warm) 100%);
+border-color: var(--accent);
+background: linear-gradient(90deg, rgba(82,183,136,0.1) 0%, var(--paper-warm) 100%);
 }
 .user-list-item .name {
-font-family: ‘Fraunces’, serif;
+font-family: 'Fraunces', serif;
 font-size: 18px;
 font-weight: 500;
 }
 .user-list-item .meta {
-font-family: ‘JetBrains Mono’, monospace;
+font-family: 'JetBrains Mono', monospace;
 font-size: 11px;
-color: var(–ink-soft);
+color: var(--ink-soft);
 margin-top: 2px;
 }
 .user-list-item .actions {
 display: flex; gap: 6px;
 }
 .user-list-item .actions button {
-background: transparent; border: 1px solid var(–line);
+background: transparent; border: 1px solid var(--line);
 padding: 5px 10px; border-radius: 2px;
 font-size: 11px; cursor: pointer;
-color: var(–ink);
+color: var(--ink);
 }
-.user-list-item .actions button:hover { background: var(–ink); color: var(–paper); }
-.user-list-item .actions .del:hover { background: var(–rust); color: var(–paper); border-color: var(–rust); }
+.user-list-item .actions button:hover { background: var(--ink); color: var(--paper); }
+.user-list-item .actions .del:hover { background: var(--rust); color: var(--paper); border-color: var(--rust); }
 
 footer {
 margin-top: 60px;
 padding-top: 24px;
-border-top: 1px solid var(–line);
+border-top: 1px solid var(--line);
 display: flex; justify-content: space-between;
-font-family: ‘JetBrains Mono’, monospace;
+font-family: 'JetBrains Mono', monospace;
 font-size: 11px;
-color: var(–ink-soft);
+color: var(--ink-soft);
 letter-spacing: 0.05em;
 flex-wrap: wrap; gap: 8px;
 }
 footer em {
-font-family: ‘Fraunces’, serif; font-style: italic; color: var(–ink);
+font-family: 'Fraunces', serif; font-style: italic; color: var(--ink);
 }
 
 .modal-bg {
@@ -814,21 +813,21 @@ overflow-y: auto;
 }
 .modal-bg.active { display: flex; align-items: flex-start; justify-content: center; padding-top: 40px; }
 .modal {
-background: var(–paper);
+background: var(--paper);
 border-radius: 4px;
 max-width: 480px; width: 100%;
 padding: 24px;
-border: 1px solid var(–line);
+border: 1px solid var(--line);
 }
 .modal h3 {
-font-family: ‘Fraunces’, serif; font-weight: 400;
+font-family: 'Fraunces', serif; font-weight: 400;
 font-size: 22px; margin-bottom: 16px;
 }
 .modal-close {
 float: right;
 background: none; border: none;
 font-size: 22px; cursor: pointer;
-color: var(–ink-soft);
+color: var(--ink-soft);
 margin-top: -4px;
 }
 
@@ -854,13 +853,13 @@ margin-bottom: 16px;
 border-bottom: 2px solid #1a2332;
 }
 .print-header h1 {
-font-family: ‘Fraunces’, serif;
+font-family: 'Fraunces', serif;
 font-weight: 400;
 font-size: 28px;
 margin-bottom: 8px;
 }
 .print-header .meta {
-font-family: ‘JetBrains Mono’, monospace;
+font-family: 'JetBrains Mono', monospace;
 font-size: 12px;
 color: #555;
 display: grid;
@@ -874,7 +873,7 @@ padding: 16px 0;
 .advice-card { page-break-inside: avoid; }
 .exercise-link { color: #2d6a4f !important; text-decoration: underline; }
 .exercise-link::after {
-content: “ (” attr(href) “)”;
+content: " (" attr(href) ")";
 font-size: 9px;
 color: #888;
 }
@@ -889,7 +888,7 @@ body.summary-print-mode #summaryReportArea {
 display: block !important;
 background: white;
 color: #1a2332;
-font-family: ‘Hiragino Sans’, ‘Yu Gothic’, sans-serif;
+font-family: 'Hiragino Sans', 'Yu Gothic', sans-serif;
 line-height: 1.6;
 max-width: 800px;
 margin: 0 auto;
@@ -901,7 +900,7 @@ padding-bottom: 12px;
 margin-bottom: 20px;
 }
 #summaryReportArea .report-header h1 {
-font-family: ‘Fraunces’, serif;
+font-family: 'Fraunces', serif;
 font-weight: 400;
 font-size: 26px;
 margin: 0 0 6px 0;
@@ -932,7 +931,7 @@ text-transform: uppercase;
 margin-bottom: 4px;
 }
 #summaryReportArea .summary-value {
-font-family: ‘Fraunces’, serif;
+font-family: 'Fraunces', serif;
 font-size: 36px;
 font-weight: 300;
 line-height: 1;
@@ -949,7 +948,7 @@ min-width: 80px;
 display: inline-block;
 }
 #summaryReportArea h2 {
-font-family: ‘Fraunces’, serif;
+font-family: 'Fraunces', serif;
 font-weight: 400;
 font-size: 18px;
 margin: 24px 0 10px;
@@ -972,7 +971,7 @@ margin-bottom: 16px;
 page-break-inside: avoid;
 }
 #summaryReportArea .advice-num {
-font-family: ‘Fraunces’, serif;
+font-family: 'Fraunces', serif;
 font-style: italic;
 font-size: 24px;
 color: #2d6a4f;
@@ -1000,7 +999,6 @@ display: none !important;
 }
 }
 </style>
-
 </head>
 <body>
 <div class="grain"></div>
@@ -1014,7 +1012,6 @@ display: none !important;
 </header>
 
 <!-- user switcher bar -->
-
 <div class="user-bar" id="userBar">
 <span class="label">利用者</span>
 <input type="text" id="userSearch" placeholder="名前で検索..." style="flex: 0 1 160px; min-width: 100px; padding: 8px 12px; border: 1px solid var(--line); background: var(--paper); color: var(--ink); font-family: 'Inter Tight', sans-serif; font-size: 13px; border-radius: 2px;" />
@@ -1037,7 +1034,6 @@ display: none !important;
 <p>横・前・背面・トレッドミルから撮った10〜20秒の動画をアップロードしてください。3方向セット測定で360度の歩行評価が可能です。動画はサーバーに送信されません。</p>
 </div>
 
-```
 <div class="setup-card">
 <h3>測定設定</h3>
 <div class="setup-row">
@@ -1058,6 +1054,7 @@ display: none !important;
 <option value="1" selected>1回（簡易）</option>
 <option value="3">3回（推奨・平均化）</option>
 <option value="multi">3方向セット測定（横+前+背面）</option>
+<option value="multi2">2方向セット測定（前+背面）</option>
 <option value="tug">TUG（Timed Up and Go）テスト</option>
 <option value="cs30">CS-30（15秒版・椅子立ち上がり）</option>
 <option value="posture">立位姿勢評価（3方向静止）</option>
@@ -1241,8 +1238,6 @@ stroke-dasharray="615.75" stroke-dashoffset="615.75" />
 <div class="advice-list" id="adviceList"></div>
 </div>
 </section>
-```
-
 </section>
 
 <section class="view" id="view-history">
@@ -1291,7 +1286,6 @@ stroke-dasharray="615.75" stroke-dashoffset="615.75" />
 </section>
 
 <!-- users management view -->
-
 <section class="view" id="view-users">
 <div class="hero">
 <h1>利用者<em>管理。</em></h1>
@@ -1336,18 +1330,15 @@ stroke-dasharray="615.75" stroke-dashoffset="615.75" />
 </div>
 
 <!-- 印刷専用エリア（普段は非表示・印刷時のみ表示） -->
-
 <div id="summaryReportArea" style="display: none;"></div>
 
 <!-- profile modal: app-wide settings -->
-
 <div class="modal-bg" id="profileModal">
 <div class="modal" style="max-width: 540px;">
 <button class="modal-close" id="profileCloseBtn">×</button>
 <h3>アプリ設定</h3>
 <p style="font-size: 13px; color: var(--ink-soft); margin-bottom: 16px;">すべてのデータは端末内に保存され、外部に送信されません。</p>
 
-```
 <!-- スタッフ管理 -->
 <div style="border-top: 1px solid var(--line); padding-top: 14px; margin-top: 14px;">
 <p style="font-family: 'Fraunces', serif; font-size: 16px; margin-bottom: 8px;">担当スタッフ管理</p>
@@ -1378,13 +1369,10 @@ stroke-dasharray="615.75" stroke-dashoffset="615.75" />
 <button class="btn btn-ghost" id="importDataBtn">データをインポート</button>
 <input type="file" id="importFileInput" accept=".json" style="display:none;" />
 </div>
-```
-
 </div>
 </div>
 
 <!-- edit user modal -->
-
 <div class="modal-bg" id="editUserModal">
 <div class="modal">
 <button class="modal-close" id="editUserCloseBtn">×</button>
@@ -1937,6 +1925,7 @@ let currentTake = 0;
 let totalTakes = 1;
 let measureMode = '1'; // '1', '3', 'multi'
 const MULTI_VIEWS = ['side', 'front', 'back']; // for 3-direction set
+const MULTI_VIEWS_2 = ['front', 'back']; // for 2-direction set (前+背面)
 const MULTI_VIEW_LABELS = { side: '横から', front: '前から', back: '背面から' };
 
 function updateTakesIndicator() {
@@ -1951,6 +1940,18 @@ const label = MULTI_VIEW_LABELS[MULTI_VIEWS[i]];
 html += `<div class="take-dot ${cls}" title="${label}">${i + 1}</div>`;
 }
 ind.innerHTML = html + `<div style="margin-left:12px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--ink-soft);align-self:center;">${currentTake < 3 ? '次: ' + MULTI_VIEW_LABELS[MULTI_VIEWS[currentTake]] : '完了'}</div>`;
+return;
+}
+if (measureMode === 'multi2') {
+let html = '';
+for (let i = 0; i < 2; i++) {
+let cls = '';
+if (i < currentTake) cls = 'done';
+else if (i === currentTake) cls = 'current';
+const label = MULTI_VIEW_LABELS[MULTI_VIEWS_2[i]];
+html += `<div class="take-dot ${cls}" title="${label}">${i + 1}</div>`;
+}
+ind.innerHTML = html + `<div style="margin-left:12px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--ink-soft);align-self:center;">${currentTake < 2 ? '次: ' + MULTI_VIEW_LABELS[MULTI_VIEWS_2[currentTake]] : '完了'}</div>`;
 return;
 }
 if (totalTakes <= 1) { ind.innerHTML = ''; return; }
@@ -1969,6 +1970,10 @@ measureMode = e.target.value;
 if (measureMode === 'multi') {
 totalTakes = 3;
 $('viewpoint').value = MULTI_VIEWS[0];
+$('viewpoint').disabled = true;
+} else if (measureMode === 'multi2') {
+totalTakes = 2;
+$('viewpoint').value = MULTI_VIEWS_2[0];
 $('viewpoint').disabled = true;
 } else if (measureMode === 'tug' || measureMode === 'cs30') {
 totalTakes = 1;
@@ -1998,6 +2003,12 @@ p.innerHTML = '椅子に座った状態から、15秒間できるだけ多く立
 } else if (measureMode === 'posture') {
 h3.textContent = '立位姿勢の動画をアップロード（横から）';
 p.innerHTML = '直立してまっすぐ立った状態の動画（3〜5秒）を3方向から撮影。<br>順番: 横 → 前 → 後ろ';
+} else if (measureMode === 'multi2') {
+h3.textContent = '1/2回目: 前からの歩行動画を選択';
+p.innerHTML = '前と背面の2方向から撮影した歩行動画をアップロード。<br>順番: 前 → 背面';
+} else if (measureMode === 'multi') {
+h3.textContent = '1/3回目: 横からの歩行動画を選択';
+p.innerHTML = '横・前・背面の3方向から撮影した歩行動画をアップロード。<br>順番: 横 → 前 → 背面';
 } else {
 h3.textContent = '動画をドロップ または タップして選択';
 p.textContent = '歩行動画 / MP4・MOV・WebM';
@@ -2093,6 +2104,10 @@ isPostureMode = (measureMode === 'posture');
 if (measureMode === 'multi') {
 totalTakes = 3;
 const baseView = MULTI_VIEWS[currentTake];
+$('viewpoint').value = baseView;
+} else if (measureMode === 'multi2') {
+totalTakes = 2;
+const baseView = MULTI_VIEWS_2[currentTake];
 $('viewpoint').value = baseView;
 } else if (measureMode === 'posture') {
 totalTakes = 3;
@@ -2947,6 +2962,11 @@ const nextView = MULTI_VIEW_LABELS[MULTI_VIEWS[currentTake]];
 $('uploadZone').querySelector('h3').textContent = `${currentTake + 1}回目: ${nextView} の動画を選択`;
 $('viewpoint').value = MULTI_VIEWS[currentTake];
 showGuide(`<h4>${MULTI_VIEW_LABELS[MULTI_VIEWS[currentTake - 1]]} の測定完了</h4>次は <strong>${nextView}</strong> から撮影した動画をアップロードしてください。`, true);
+} else if (measureMode === 'multi2') {
+const nextView = MULTI_VIEW_LABELS[MULTI_VIEWS_2[currentTake]];
+$('uploadZone').querySelector('h3').textContent = `${currentTake + 1}回目: ${nextView} の動画を選択`;
+$('viewpoint').value = MULTI_VIEWS_2[currentTake];
+showGuide(`<h4>${MULTI_VIEW_LABELS[MULTI_VIEWS_2[currentTake - 1]]} の測定完了</h4>次は <strong>${nextView}</strong> から撮影した動画をアップロードしてください。`, true);
 } else {
 $('uploadZone').querySelector('h3').textContent = `${currentTake + 1}回目の動画を選択`;
 showGuide(`<h4>${currentTake}回目の測定が完了しました</h4>残り ${totalTakes - currentTake} 回。続けてアップロードしてください。`, true);
@@ -2959,6 +2979,8 @@ currentFrames = takeResults[takeResults.length - 1].frames;
 let finalResult;
 if (measureMode === 'multi') {
 finalResult = combineMultiViewResults(takeResults);
+} else if (measureMode === 'multi2') {
+finalResult = combineMulti2ViewResults(takeResults);
 } else {
 finalResult = averageResults(takeResults.map(r => r.scoring));
 // 単独測定の場合はROMもセットする
@@ -5177,6 +5199,101 @@ timestamp: Date.now()
 };
 }
 
+// 2方向セット（前+背面）の結果統合
+function combineMulti2ViewResults(takeResults) {
+const viewMap = {};
+takeResults.forEach(t => {
+const baseView = t.viewpoint.replace('tm_', '');
+viewMap[baseView] = t.scoring;
+});
+
+const frontR = viewMap.front;
+const backR = viewMap.back;
+
+const metrics = [];
+
+// 背面から: 骨盤動揺・肩の左右差・脊柱側屈
+if (backR) {
+const sway = backR.metrics.find(m => m.key === 'sway');
+const shoulder = backR.metrics.find(m => m.key === 'shoulder');
+const spine = backR.metrics.find(m => m.key === 'spine');
+if (sway) metrics.push({ ...sway, source: '背面' });
+if (shoulder) metrics.push({ ...shoulder, source: '背面' });
+if (spine) metrics.push({ ...spine, source: '背面' });
+}
+
+// 骨盤の水平性: 前・背面の両方の平均
+const pelvicSrcs = [];
+if (frontR) pelvicSrcs.push(frontR.metrics.find(m => m.key === 'pelvic'));
+if (backR) pelvicSrcs.push(backR.metrics.find(m => m.key === 'pelvic'));
+const pelvicValid = pelvicSrcs.filter(Boolean);
+if (pelvicValid.length) {
+metrics.push({
+key: 'pelvic',
+name: '骨盤の水平性',
+sub: 'PELVIC LEVEL',
+score: Math.round(mean(pelvicValid.map(m => m.score))),
+raw: mean(pelvicValid.map(m => m.raw)),
+source: pelvicValid.length === 2 ? '前+背面' : (frontR ? '前' : '背面')
+});
+}
+
+// 左右対称性とリズム: 両視点の平均
+const symAll = takeResults.map(t => t.scoring.metrics.find(m => m.key === 'symmetry')).filter(Boolean);
+const rhythmAll = takeResults.map(t => t.scoring.metrics.find(m => m.key === 'rhythm')).filter(Boolean);
+if (symAll.length) {
+metrics.push({
+key: 'symmetry',
+name: '左右対称性',
+sub: 'STEP SYMMETRY',
+score: Math.round(mean(symAll.map(m => m.score))),
+raw: mean(symAll.map(m => m.raw)),
+source: '前+背面'
+});
+}
+if (rhythmAll.length) {
+metrics.push({
+key: 'rhythm',
+name: 'リズムの安定性',
+sub: 'CADENCE STABILITY',
+score: Math.round(mean(rhythmAll.map(m => m.score))),
+raw: mean(rhythmAll.map(m => m.raw)),
+source: '前+背面'
+});
+}
+
+const overall = metrics.length > 0
+? Math.round(mean(metrics.map(m => m.score)))
+: 0;
+
+const cadence = backR?.cadence || frontR?.cadence || 0;
+
+// 視点別所見
+const findings = {};
+if (frontR) findings.front = generateFrontFindings(frontR);
+if (backR) findings.back = generateBackFindings(backR);
+
+return {
+overall,
+metrics,
+cadence: Math.round(cadence),
+viewpoint: 'multi2',
+isMulti: true,
+isMulti2: true,
+pains: takeResults[0].scoring.pains,
+problemFrames: takeResults[takeResults.length - 1].scoring.problemFrames,
+multiResults: { front: frontR, back: backR },
+findings,
+detectionQuality: (() => {
+const qs = takeResults.map(t => t.scoring.detectionQuality).filter(Boolean);
+if (qs.length === 0) return null;
+const order = { good: 0, fair: 1, poor: 2 };
+return qs.reduce((a, b) => (order[a.level] >= order[b.level] ? a : b));
+})(),
+timestamp: Date.now()
+};
+}
+
 function generateSideFindings(r) {
 const items = [];
 const posture = r.metrics.find(m => m.key === 'posture');
@@ -5363,7 +5480,8 @@ const vpLabel = {
 'tm_side': 'トレッドミル（横から）',
 'tm_front': 'トレッドミル（前から）',
 'tm_back': 'トレッドミル（背面から）',
-'multi': '3方向セット測定（横+前+背面）'
+'multi': '3方向セット測定（横+前+背面）',
+'multi2': '2方向セット測定（前+背面）'
 }[result.viewpoint] || result.viewpoint;
 let dateLine = '測定日: ' + new Date(result.timestamp).toLocaleString('ja-JP') + ' / ' + vpLabel;
 const staff = $('staffSelect').value;
@@ -5417,9 +5535,10 @@ el.style.width = el.dataset.score + '%';
 const findingsBox = $('multiFindingsBox');
 if (result.isMulti && result.findings) {
 const f = result.findings;
+const titleText = result.isMulti2 ? '2方向観察所見（前+背面）' : '3方向観察所見';
 findingsBox.innerHTML = `
 <div class="risk-section" style="border-bottom: 1px solid var(--line);">
-<h2 style="font-family:'Fraunces',serif;font-weight:300;font-size:24px;margin-bottom:14px;">3方向観察所見</h2>
+<h2 style="font-family:'Fraunces',serif;font-weight:300;font-size:24px;margin-bottom:14px;">${titleText}</h2>
 <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;">
 ${f.side ? `<div style="background:var(--paper-warm);padding:14px;border-left:3px solid var(--accent);border-radius:2px;">
 <div style="font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:0.15em;color:var(--ink-soft);margin-bottom:6px;">— 横から（矢状面）</div>
@@ -5697,7 +5816,7 @@ ${[...history].reverse().map(h => {
 const vp = h.isTug ? 'TUG'
 : h.isCS30 ? 'CS-30'
 : h.isPosture ? '立位姿勢'
-: ({'side':'横','front':'前','back':'背面','tm_side':'TM 横','tm_front':'TM 前','tm_back':'TM 背面','multi':'3方向セット'}[h.viewpoint] || h.viewpoint);
+: ({'side':'横','front':'前','back':'背面','tm_side':'TM 横','tm_front':'TM 前','tm_back':'TM 背面','multi':'3方向セット','multi2':'2方向セット'}[h.viewpoint] || h.viewpoint);
 const subInfo = h.isTug
 ? `${vp} · ${h.tugTotalTime}秒 / ${h.tugEvaluation}`
 : h.isCS30
@@ -6037,7 +6156,7 @@ else scoreCol = h.overall + '点';
 const vp = h.isTug ? 'TUG'
 : h.isCS30 ? 'CS-30'
 : h.isPosture ? '立位姿勢'
-: ({'side':'横','front':'前','back':'背面','tm_side':'TM横','tm_front':'TM前','tm_back':'TM背面','multi':'3方向'}[h.viewpoint] || h.viewpoint);
+: ({'side':'横','front':'前','back':'背面','tm_side':'TM横','tm_front':'TM前','tm_back':'TM背面','multi':'3方向','multi2':'2方向'}[h.viewpoint] || h.viewpoint);
 return `
 <tr>
 <td style="font-size:11px;">${new Date(h.timestamp).toLocaleString('ja-JP', {year:'numeric',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})}</td>
@@ -6413,6 +6532,5 @@ updateTakesIndicator();
 totalTakes = parseInt($('takeCount').value);
 checkBackupReminder();
 </script>
-
 </body>
 </html>
