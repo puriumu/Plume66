@@ -5738,6 +5738,23 @@ drawFrame(0);
 // ============== Per-user history ==============
 async function saveToHistory(result) {
 try {
+// デバッグ: result の中身を確認
+console.log('[saveToHistory] called with:', {
+viewpoint: result.viewpoint,
+overall: result.overall,
+isBack: result.isBack,
+isMulti: result.isMulti,
+metricsCount: result.metrics?.length,
+timestamp: result.timestamp
+});
+
+// result.overall が NaN/undefined の場合に検出
+if (result.overall == null || isNaN(result.overall)) {
+alert('スコア計算に失敗しました(overall=' + result.overall + ')。再測定してください。');
+console.error('[saveToHistory] invalid overall:', result);
+return;
+}
+
 const measurementId = Date.now();
 if (getAppSettings().saveVideo && currentVideoFile) {
 try { await videoStore.save(measurementId, currentVideoFile); }
@@ -5747,14 +5764,16 @@ catch (err) { console.warn('動画保存失敗:', err); }
 const staffName = $('staffSelect').value || null;
 const note = $('measureNote').value.trim() || '';
 
+const currentUserBefore = getCurrentUser();
+console.log('[saveToHistory] current user:', currentUserBefore?.name, 'history length:', currentUserBefore?.history?.length);
+
 updateCurrentUser(u => {
-// history配列が初期化されていない場合の保護
 if (!u.history) u.history = [];
 
 const safeMetrics = Array.isArray(result.metrics)
 ? result.metrics.map(m => ({
 key: m.key || '',
-score: m.score || 0,
+score: (m.score == null || isNaN(m.score)) ? 0 : m.score,
 name: m.name || ''
 }))
 : [];
@@ -5762,7 +5781,7 @@ name: m.name || ''
 u.history.push({
 id: measurementId,
 timestamp: result.timestamp || Date.now(),
-overall: result.overall || 0,
+overall: Math.round(result.overall),
 metrics: safeMetrics,
 cadence: result.cadence || 0,
 viewpoint: result.viewpoint || 'side',
@@ -5778,10 +5797,12 @@ pains: result.pains || []
 });
 if (u.history.length > 200) u.history.shift();
 });
-console.log('履歴に保存しました:', result.viewpoint, result.overall);
+
+const currentUserAfter = getCurrentUser();
+console.log('[saveToHistory] saved. New history length:', currentUserAfter?.history?.length);
 } catch (err) {
 console.error('saveToHistoryエラー:', err);
-alert('履歴の保存に失敗しました: ' + err.message);
+alert('履歴の保存に失敗しました: ' + err.message + '\n\nスクリーンショットを開発者に送ってください。');
 }
 }
 
