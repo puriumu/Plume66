@@ -5344,9 +5344,17 @@ const u = getCurrentUser();
 const age = u?.age || 40;
 
 let risk = 0;
-const symmetry = result.metrics.find(m => m.key === 'symmetry').score;
-const rhythm = result.metrics.find(m => m.key === 'rhythm').score;
-const posture = result.metrics.find(m => m.key === 'posture').score;
+const symmetryMetric = result.metrics.find(m => m.key === 'symmetry');
+const rhythmMetric = result.metrics.find(m => m.key === 'rhythm');
+// posture が無ければ (背面モードでは) spine か sway を代替として使う
+const postureMetric = result.metrics.find(m => m.key === 'posture')
+|| result.metrics.find(m => m.key === 'spine')
+|| result.metrics.find(m => m.key === 'sway')
+|| { score: 70 };
+
+const symmetry = symmetryMetric?.score ?? 70;
+const rhythm = rhythmMetric?.score ?? 70;
+const posture = postureMetric?.score ?? 70;
 
 risk += (100 - symmetry) * 0.30;
 risk += (100 - rhythm) * 0.25;
