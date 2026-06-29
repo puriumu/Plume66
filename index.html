@@ -2992,18 +2992,24 @@ finalResult = combineMultiViewResults(takeResults);
 finalResult = combineMulti2ViewResults(takeResults);
 } else {
 finalResult = averageResults(takeResults.map(r => r.scoring));
-// 単独測定の場合はROMもセットする
 if (takeResults.length === 1 && takeResults[0].scoring.rom) {
 finalResult.rom = takeResults[0].scoring.rom;
 } else if (takeResults.length > 1) {
-// 3回平均モードの場合、ROMの平均を計算
 const allRoms = takeResults.map(t => t.scoring.rom).filter(Boolean);
 if (allRoms.length > 0) {
 finalResult.rom = averageROM(allRoms);
 }
 }
 }
+debugLog(`analyzeVideo完了: mode=${measureMode}, viewpoint=${finalResult?.viewpoint}, overall=${finalResult?.overall}`);
+try {
 showResults(finalResult);
+debugLog(`showResults完了`);
+} catch (err) {
+debugLog(`showResultsエラー: ${err.message}`);
+console.error('showResultsエラー:', err);
+alert('結果表示でエラーが発生しました: ' + err.message);
+}
 await saveToHistory(finalResult);
 checkAndAwardBadges();
 }
