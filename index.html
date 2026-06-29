@@ -5735,23 +5735,33 @@ drawFrame(parseInt(slider.value));
 drawFrame(0);
 }
 
+// ============== デバッグログ表示（一時的） ==============
+const debugLogs = [];
+function debugLog(msg) {
+console.log(msg);
+debugLogs.push(new Date().toLocaleTimeString('ja-JP') + ' ' + msg);
+if (debugLogs.length > 50) debugLogs.shift();
+}
+
+// 履歴タブ表示時に最後にデバッグログも表示
+function showDebugLogs() {
+const existing = document.getElementById('debugLogBox');
+if (existing) existing.remove();
+const div = document.createElement('div');
+div.id = 'debugLogBox';
+div.style.cssText = 'background: #1a2332; color: #f4ede0; padding: 12px; margin-top: 20px; font-family: monospace; font-size: 11px; max-height: 300px; overflow-y: auto; border-radius: 3px; white-space: pre-wrap;';
+div.innerHTML = '<strong style="color: #d4a574;">— デバッグログ（一時表示）—</strong><br>' +
+debugLogs.map(l => l.replace(/</g, '&lt;')).join('<br>');
+return div;
+}
+
 // ============== Per-user history ==============
 async function saveToHistory(result) {
+debugLog(`saveToHistory開始: viewpoint=${result.viewpoint}, overall=${result.overall}, isBack=${result.isBack}, isMulti=${result.isMulti}`);
 try {
-// デバッグ: result の中身を確認
-console.log('[saveToHistory] called with:', {
-viewpoint: result.viewpoint,
-overall: result.overall,
-isBack: result.isBack,
-isMulti: result.isMulti,
-metricsCount: result.metrics?.length,
-timestamp: result.timestamp
-});
-
-// result.overall が NaN/undefined の場合に検出
 if (result.overall == null || isNaN(result.overall)) {
+debugLog(`ERROR: overallが無効 (${result.overall})`);
 alert('スコア計算に失敗しました(overall=' + result.overall + ')。再測定してください。');
-console.error('[saveToHistory] invalid overall:', result);
 return;
 }
 
@@ -5765,7 +5775,7 @@ const staffName = $('staffSelect').value || null;
 const note = $('measureNote').value.trim() || '';
 
 const currentUserBefore = getCurrentUser();
-console.log('[saveToHistory] current user:', currentUserBefore?.name, 'history length:', currentUserBefore?.history?.length);
+debugLog(`保存前: ユーザー=${currentUserBefore?.name}, 履歴数=${currentUserBefore?.history?.length || 0}`);
 
 updateCurrentUser(u => {
 if (!u.history) u.history = [];
@@ -5799,10 +5809,11 @@ if (u.history.length > 200) u.history.shift();
 });
 
 const currentUserAfter = getCurrentUser();
-console.log('[saveToHistory] saved. New history length:', currentUserAfter?.history?.length);
+debugLog(`保存後: 履歴数=${currentUserAfter?.history?.length || 0}, 最新overall=${currentUserAfter?.history?.[currentUserAfter.history.length-1]?.overall}`);
 } catch (err) {
+debugLog(`ERROR: ${err.message}`);
 console.error('saveToHistoryエラー:', err);
-alert('履歴の保存に失敗しました: ' + err.message + '\n\nスクリーンショットを開発者に送ってください。');
+alert('履歴の保存に失敗しました: ' + err.message);
 }
 }
 
@@ -5901,6 +5912,11 @@ ${h.hasVideo ? `<button data-id="${h.id}" data-act="video">動画</button>` : ''
 `;
 
 drawHistoryChart(history);
+
+// デバッグログを画面に表示（一時的）
+debugLog(`renderHistory: 履歴件数=${history.length}, 最新overall=${history[history.length-1]?.overall}, viewpoint=${history[history.length-1]?.viewpoint}`);
+const debugBox = showDebugLogs();
+c.appendChild(debugBox);
 
 // 総合レポート印刷ボタン
 const printBtn = $('printSummaryBtn');
