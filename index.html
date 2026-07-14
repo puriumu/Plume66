@@ -1299,11 +1299,15 @@ stroke-dasharray="615.75" stroke-dashoffset="615.75" />
 <input type="text" id="newUserName" placeholder="例: 田中 太郎" />
 </div>
 <div class="field">
-<label>年齢</label>
-<input type="number" id="newUserAge" min="10" max="120" placeholder="任意" />
+<label>ふりがな（五十音ソート用）</label>
+<input type="text" id="newUserFurigana" placeholder="例: たなか たろう" />
 </div>
 </div>
 <div class="setup-row">
+<div class="field">
+<label>年齢</label>
+<input type="number" id="newUserAge" min="10" max="120" placeholder="任意" />
+</div>
 <div class="field">
 <label>性別</label>
 <select id="newUserGender">
@@ -1313,7 +1317,9 @@ stroke-dasharray="615.75" stroke-dashoffset="615.75" />
 <option value="o">その他</option>
 </select>
 </div>
-<div class="field">
+</div>
+<div class="setup-row">
+<div class="field" style="grid-column: 1 / -1;">
 <label>備考（任意）</label>
 <input type="text" id="newUserNote" placeholder="例: 右膝OA" />
 </div>
@@ -1384,11 +1390,15 @@ stroke-dasharray="615.75" stroke-dashoffset="615.75" />
 <input type="text" id="editUserName" />
 </div>
 <div class="field">
-<label>年齢</label>
-<input type="number" id="editUserAge" min="10" max="120" />
+<label>ふりがな</label>
+<input type="text" id="editUserFurigana" placeholder="例: たなか たろう" />
 </div>
 </div>
 <div class="setup-row">
+<div class="field">
+<label>年齢</label>
+<input type="number" id="editUserAge" min="10" max="120" />
+</div>
 <div class="field">
 <label>性別</label>
 <select id="editUserGender">
@@ -1398,7 +1408,9 @@ stroke-dasharray="615.75" stroke-dashoffset="615.75" />
 <option value="o">その他</option>
 </select>
 </div>
-<div class="field">
+</div>
+<div class="setup-row">
+<div class="field" style="grid-column: 1 / -1;">
 <label>備考</label>
 <input type="text" id="editUserNote" />
 </div>
@@ -1478,29 +1490,37 @@ $('uploadZone').classList.add('disabled');
 return;
 }
 
-// フィルタ適用
+// フィルタ適用（名前・ふりがな・備考で検索）
 const filtered = search
 ? users.filter(u =>
 u.name.toLowerCase().includes(search) ||
+(u.furigana || '').toLowerCase().includes(search) ||
 (u.note || '').toLowerCase().includes(search))
 : users;
+
+// 五十音順でソート
+const sorted = [...filtered].sort((a, b) => {
+const na = (a.furigana || a.name || '').toString();
+const nb = (b.furigana || b.name || '').toString();
+return na.localeCompare(nb, 'ja');
+});
 
 sel.disabled = false;
 $('uploadZone').classList.remove('disabled');
 
-if (filtered.length === 0) {
+if (sorted.length === 0) {
 sel.innerHTML = '<option value="">該当する利用者なし</option>';
 return;
 }
 
-sel.innerHTML = filtered.map(u =>
+sel.innerHTML = sorted.map(u =>
 `<option value="${u.id}" ${u.id === currentId ? 'selected' : ''}>${escapeHtml(u.name)}</option>`
 ).join('');
 
 // 現在のユーザーがフィルタで残っていなければ、フィルタ後の先頭を選択（自動選択はしない）
-if (!filtered.find(u => u.id === currentId) && !search) {
-setCurrentUserId(filtered[0].id);
-sel.value = filtered[0].id;
+if (!sorted.find(u => u.id === currentId) && !search) {
+setCurrentUserId(sorted[0].id);
+sel.value = sorted[0].id;
 }
 }
 
@@ -1616,6 +1636,7 @@ const users = getUsers();
 const newUser = {
 id: uid(),
 name,
+furigana: $('newUserFurigana').value.trim() || '',
 age: parseInt($('newUserAge').value) || null,
 gender: $('newUserGender').value || null,
 note: $('newUserNote').value.trim() || '',
@@ -1628,12 +1649,15 @@ users.push(newUser);
 saveUsers(users);
 if (!getCurrentUserId() || users.length === 1) setCurrentUserId(newUser.id);
 $('newUserName').value = '';
+$('newUserFurigana').value = '';
 $('newUserAge').value = '';
 $('newUserGender').value = '';
 $('newUserNote').value = '';
 refreshUserBar();
 renderUsers();
 });
+
+let userListSortMode = 'kana'; // 'kana', 'created', 'count'
 
 function renderUsers() {
 const users = getUsers();
@@ -1643,11 +1667,46 @@ if (users.length === 0) {
 list.innerHTML = '<div class="history-empty"><p>まだ利用者が登録されていません。</p><p style="font-size:13px;">上のフォームから追加してください。</p></div>';
 return;
 }
-list.innerHTML = '<h3 style="font-family:Fraunces,serif;font-weight:300;font-size:24px;margin:24px 0 14px;">登録された利用者（' + users.length + '名）</h3>' +
-users.map(u => `
+
+// ソート適用
+const sortedUsers = [...users];
+if (userListSortMode === 'kana') {
+// 五十音順（ふりがなあればそれを使い、なければ名前で）
+sortedUsers.sort((a, b) => {
+const nameA = (a.furigana || a.name || '').toString();
+const nameB = (b.furigana || b.name || '').toString();
+return nameA.localeCompare(nameB, 'ja');
+});
+} else if (userListSortMode === 'created') {
+// 登録順（ID = timestamp）
+sortedUsers.sort((a, b) => (parseInt(a.id) || 0) - (parseInt(b.id) || 0));
+} else if (userListSortMode === 'count') {
+// 測定回数の多い順
+sortedUsers.sort((a, b) => (b.history?.length || 0) - (a.history?.length || 0));
+}
+
+const sortLabels = {
+kana: '五十音順',
+created: '登録順',
+count: '測定回数順'
+};
+
+list.innerHTML = `
+<div style="display:flex;justify-content:space-between;align-items:baseline;margin:24px 0 14px;flex-wrap:wrap;gap:10px;">
+<h3 style="font-family:Fraunces,serif;font-weight:300;font-size:24px;margin:0;">登録された利用者（${users.length}名）</h3>
+<div style="display:flex;gap:6px;font-family:'JetBrains Mono',monospace;font-size:11px;">
+<button class="sort-btn ${userListSortMode === 'kana' ? 'active' : ''}" data-sort="kana"
+style="padding:6px 10px;border:1px solid var(--line);background:${userListSortMode === 'kana' ? 'var(--ink)' : 'var(--paper)'};color:${userListSortMode === 'kana' ? 'var(--paper)' : 'var(--ink)'};cursor:pointer;border-radius:2px;">五十音順</button>
+<button class="sort-btn ${userListSortMode === 'created' ? 'active' : ''}" data-sort="created"
+style="padding:6px 10px;border:1px solid var(--line);background:${userListSortMode === 'created' ? 'var(--ink)' : 'var(--paper)'};color:${userListSortMode === 'created' ? 'var(--paper)' : 'var(--ink)'};cursor:pointer;border-radius:2px;">登録順</button>
+<button class="sort-btn ${userListSortMode === 'count' ? 'active' : ''}" data-sort="count"
+style="padding:6px 10px;border:1px solid var(--line);background:${userListSortMode === 'count' ? 'var(--ink)' : 'var(--paper)'};color:${userListSortMode === 'count' ? 'var(--paper)' : 'var(--ink)'};cursor:pointer;border-radius:2px;">測定回数順</button>
+</div>
+</div>
+` + sortedUsers.map(u => `
 <div class="user-list-item ${u.id === currentId ? 'active-user' : ''}">
 <div>
-<div class="name">${escapeHtml(u.name)} ${u.id === currentId ? '<span style="font-family:JetBrains Mono,monospace;font-size:10px;color:var(--accent);letter-spacing:0.1em;margin-left:8px;">● 選択中</span>' : ''}</div>
+<div class="name">${escapeHtml(u.name)} ${u.furigana ? `<span style="font-size:11px;color:var(--ink-soft);margin-left:6px;">（${escapeHtml(u.furigana)}）</span>` : ''} ${u.id === currentId ? '<span style="font-family:JetBrains Mono,monospace;font-size:10px;color:var(--accent);letter-spacing:0.1em;margin-left:8px;">● 選択中</span>' : ''}</div>
 <div class="meta">
 ${u.age ? u.age + '歳' : '年齢未設定'} ·
 ${u.gender === 'm' ? '男性' : u.gender === 'f' ? '女性' : u.gender === 'o' ? 'その他' : '性別未設定'} ·
@@ -1663,6 +1722,14 @@ ${u.id !== currentId ? `<button data-act="select" data-id="${u.id}">選択</butt
 </div>
 `).join('');
 
+// ソートボタンのイベント
+list.querySelectorAll('button.sort-btn').forEach(b => {
+b.addEventListener('click', () => {
+userListSortMode = b.dataset.sort;
+renderUsers();
+});
+});
+
 list.querySelectorAll('button[data-act]').forEach(b => {
 b.addEventListener('click', () => {
 const id = b.dataset.id;
@@ -1676,6 +1743,7 @@ const u = getUsers().find(x => x.id === id);
 if (!u) return;
 $('editUserId').value = u.id;
 $('editUserName').value = u.name;
+$('editUserFurigana').value = u.furigana || '';
 $('editUserAge').value = u.age || '';
 $('editUserGender').value = u.gender || '';
 $('editUserNote').value = u.note || '';
@@ -1706,6 +1774,7 @@ const users = getUsers();
 const u = users.find(x => x.id === id);
 if (!u) return;
 u.name = $('editUserName').value.trim() || u.name;
+u.furigana = $('editUserFurigana').value.trim() || '';
 u.age = parseInt($('editUserAge').value) || null;
 u.gender = $('editUserGender').value || null;
 u.note = $('editUserNote').value.trim() || '';
@@ -5401,47 +5470,202 @@ age < 60 ? '50代' : age < 70 ? '60代' : age < 80 ? '70代' : '80代以上';
 return `${ageGroup}平均との差: ${sign}${diff} 点`;
 }
 
-const ADVICE_BANK = {
+// ============== アドバイス辞書（深刻度×年齢×バリエーション） ==============
+// 各項目に、深刻度(mild/moderate/severe)ごとに複数のバリエーションを用意
+// 年齢帯(young=64以下, senior=65-74, elderly=75+)によっても文面を変える
+const ADVICE_BANK_V2 = {
 posture: {
 title: '体幹をまっすぐに保つ',
-body: '頭頂部から1本の糸で吊り上げられているイメージを意識しましょう。立っている時にお腹を軽く引き締め、肋骨を骨盤の真上に乗せる感覚を1日数回練習すると、歩行中の前傾が改善します。',
+variants: {
+mild: [
+{ title: '姿勢を意識する習慣づくり', body: '基本的な姿勢は保たれています。頭頂部から糸で吊られるイメージを1日数回思い出すだけでも維持効果があります。壁に背中をつけて立つ練習を1日1分試してみてください。' },
+{ title: '軽い体幹意識', body: '座っている時と立っている時のお腹の引き締めを意識しましょう。デスクワーク中も骨盤を立てて座ることで自然と体幹が働きます。' },
+{ title: '呼吸と姿勢', body: '深い腹式呼吸をしながら姿勢を整えると、横隔膜が働き自然に体幹が安定します。1日3回、10呼吸ずつ試してみてください。' }
+],
+moderate: [
+{ title: '体幹強化と姿勢矯正', body: '前傾姿勢の傾向があります。プランクを30秒×3セット、バードドッグを10回×2セット週3回行うと、歩行時の姿勢が改善します。壁立ちも毎日3分続けましょう。' },
+{ title: '胸椎の可動性向上', body: '猫背傾向を改善するには、胸椎の伸展運動が有効です。フォームローラーの上で仰向けになる、キャットカウ体操などを日々の習慣にしましょう。' },
+{ title: '姿勢筋のトレーニング', body: '姿勢を保つ筋肉（脊柱起立筋、腹横筋）の強化が必要です。ヨガのコブラのポーズ、デッドバグ運動を継続的に行いましょう。' }
+],
+severe: [
+{ title: '専門家との連携が必要', body: '姿勢の崩れが顕著です。整形外科や理学療法士による評価と個別プログラムの作成をお勧めします。自己流のトレーニングは症状悪化の可能性があるため、まず専門家に相談してください。' },
+{ title: '基礎からの姿勢再構築', body: '重度の姿勢異常が見られます。まずは寝た状態での体幹活性化から始め、四つ這い、座位、立位と段階的に進める必要があります。理学療法士の指導を強くお勧めします。' }
+]
+},
 youtube: 'https://www.youtube.com/results?search_query=posture+correction+exercises'
 },
 head: {
-title: '視線を前方15メートル先へ',
-body: 'スマホ姿勢などで頭が前に出る「前方頭位」は重心を崩します。耳が肩の真上に来るよう、顎を軽く引いて視線を地面ではなく前方遠くに向けて歩いてみてください。',
+title: '頭部位置の改善',
+variants: {
+mild: [
+{ title: '視線を遠くに保つ', body: '軽度の頭部前方位です。歩行時は視線を前方15m先に向けて、顎を軽く引く意識だけでも改善します。スマホを見る時は目線の高さまで持ち上げましょう。' },
+{ title: 'デスクワーク中の姿勢調整', body: 'モニターの高さを目線の高さに合わせ、1時間に1回は首の後ろに手を当てて、首を後ろに押す運動を10秒行いましょう。' }
+],
+moderate: [
+{ title: 'チンタック運動を習慣に', body: '前方頭位の傾向があります。顎を引き二重顎を作る「チンタック」を1日3セット×10回。デスクワーク中もこまめに実施しましょう。' },
+{ title: '深頸筋の強化', body: '首の深部筋が弱化している可能性があります。仰向けで顎を引く運動、四つ這いでの頭の位置キープを継続すると改善します。' }
+],
+severe: [
+{ title: '専門家評価が推奨', body: '頭部前方位が顕著です。頸椎や肩関節への負担も大きくなるため、整形外科や理学療法士の評価をお勧めします。' }
+]
+},
 youtube: 'https://www.youtube.com/results?search_query=chin+tuck+exercise+forward+head+posture'
 },
 pelvic: {
-title: '中臀筋を強化する',
-body: '骨盤が左右に揺れているサインです。片足立ちを左右30秒ずつ、サイドプランクを20秒×3セット週3回行うと、立脚中の骨盤の安定性が高まります。',
+title: '骨盤の水平性の改善',
+variants: {
+mild: [
+{ title: '軽い骨盤安定化運動', body: '骨盤の水平性はおおむね保たれています。片足立ちを左右30秒ずつ、毎日続けることで維持できます。' },
+{ title: 'クラムシェル運動', body: '横向きに寝て膝を曲げ、上の膝を開く運動（クラムシェル）を左右15回×2セット。中臀筋の活性化に効果的です。' }
+],
+moderate: [
+{ title: '中臀筋強化プログラム', body: '骨盤の左右差が見られます。サイドプランク20秒×3セット、片足スクワット10回、モンスターウォーク（バンドを使った横歩き）を週3回行いましょう。' },
+{ title: '片脚立位バランス訓練', body: '立脚期の骨盤保持が不安定です。片足立ちを目を開けて30秒、慣れたら目を閉じて15秒。壁に手をついて安全に行ってください。' }
+],
+severe: [
+{ title: '専門家との運動療法', body: '骨盤の傾きが顕著です。トレンデレンブルグ徴候の可能性もあり、理学療法士による評価と個別プログラムをお勧めします。転倒予防の観点からも早めの介入が推奨されます。' }
+]
+},
 youtube: 'https://www.youtube.com/results?search_query=gluteus+medius+strengthening+exercises'
 },
 symmetry: {
-title: '左右対称な歩幅を意識する',
-body: '片側の歩幅が大きい・小さい傾向があります。直線上を一定のリズムで歩く練習や、メトロノームに合わせたウォーキングが有効です。痛みがある場合は専門家にご相談ください。',
+title: '左右対称性の改善',
+variants: {
+mild: [
+{ title: '直線歩行の練習', body: '左右のバランスは概ね良好です。床にテープなどで直線を作り、その上を一定リズムで歩く練習を1日5分行うと、対称性が磨かれます。' },
+{ title: 'ミラーウォーキング', body: '大きな鏡の前で歩く姿を確認しながら歩くと、無意識の左右差が自分で分かります。週2〜3回、5分程度行いましょう。' }
+],
+moderate: [
+{ title: 'リズム矯正歩行訓練', body: '左右の歩幅・タイミングに差があります。メトロノームアプリで100BPMに合わせた歩行を毎日10分。左右で「イチ・ニ」と数えながら歩くのも効果的です。' },
+{ title: '片側訓練の追加', body: '弱い側の片足スクワット、片足立ち、片足でのカーフレイズを追加すると左右差が縮まります。左右10回×2セット週3回。' }
+],
+severe: [
+{ title: '専門家による評価が必要', body: '左右差が顕著で、痛みや神経学的な要因が背景にある可能性があります。整形外科や理学療法士による評価を強くお勧めします。' }
+]
+},
 youtube: 'https://www.youtube.com/results?search_query=tandem+walking+exercise+gait'
 },
 rhythm: {
-title: 'リズムを一定に保つ',
-body: 'ケイデンス（歩調）にばらつきがあります。1分間100〜110歩を目安に、同じテンポで歩く練習をしてみましょう。スマホのメトロノームアプリを使うと効果的です。',
+title: 'リズムの安定性の改善',
+variants: {
+mild: [
+{ title: 'メトロノーム歩行', body: 'リズムはおおむね一定です。100〜110BPMのメトロノームに合わせた歩行を週2〜3回、5〜10分行うと、さらに安定します。' },
+{ title: '音楽に合わせた歩行', body: 'テンポの一定な音楽（マーチ、演歌など）に合わせて歩くと、リズム感が養われます。1日10分の習慣に。' }
+],
+moderate: [
+{ title: 'ケイデンス訓練', body: '歩調にばらつきがあります。まずは100BPMを目標に、メトロノームに合わせて10分歩く練習を毎日。慣れたら115BPMまで上げてみましょう。' },
+{ title: '認知的歩行訓練', body: 'リズム不安定さの背景に注意配分の問題がある場合もあります。歩きながらしりとりや暗算をする「デュアルタスク訓練」も有効です。' }
+],
+severe: [
+{ title: '医療的評価を推奨', body: 'リズムの著しい不安定さは、神経学的要因や下肢筋力低下、平衡機能障害を反映している可能性があります。医師や理学療法士による総合的評価を受けてください。' }
+]
+},
 youtube: 'https://www.youtube.com/results?search_query=metronome+walking+cadence+training'
 },
 sway: {
-title: '骨盤の左右動揺を抑える',
-body: '歩行中に骨盤が大きく左右に揺れる場合、中臀筋・小臀筋の弱化（トレンデレンブルグ徴候の傾向）が考えられます。片足立ち（左右30秒ずつ）、クラムシェル（横向きで膝開閉）、サイドステップ運動を週3〜4回行うと改善します。',
+title: '骨盤の左右動揺の改善',
+variants: {
+mild: [
+{ title: '中臀筋の維持運動', body: '骨盤動揺は軽度です。サイドステップ、片足立ちなどで中臀筋を保ちましょう。20秒×3セットを週3回。' }
+],
+moderate: [
+{ title: '中臀筋強化プログラム', body: 'トレンデレンブルグ傾向があります。クラムシェル20回×2セット、サイドプランク30秒×3セット、モンスターウォーク10歩×3セット週3回。' },
+{ title: 'コアと股関節の統合訓練', body: '骨盤動揺の背景にコア安定性の低下があります。デッドバグ、バードドッグ、スクワットジャンプを組み合わせて週3回行いましょう。' }
+],
+severe: [
+{ title: '専門家による評価', body: '顕著な骨盤動揺は転倒リスクや変形性関節症のサインとなる場合があります。理学療法士か整形外科で評価を受けてください。' }
+]
+},
 youtube: 'https://www.youtube.com/results?search_query=trendelenburg+gait+exercises'
 },
 shoulder: {
-title: '肩の左右の高さを整える',
-body: '左右の肩の高さに差がある場合、利き手の使い過ぎや片側の肩甲帯の筋緊張差が原因のことがあります。肩甲骨周囲のストレッチ、僧帽筋上部のリリース、肩甲骨を後下方に下げる運動が有効です。',
+title: '肩の左右差の改善',
+variants: {
+mild: [
+{ title: '肩甲骨のストレッチ', body: '肩の高さの差は軽度です。両肩を耳に近づけて5秒キープ→力を抜く、を10回。日々の緊張リセットに。' }
+],
+moderate: [
+{ title: '肩甲帯の左右バランス調整', body: '肩の高さに明らかな差があります。高い側は僧帽筋ストレッチ、低い側は肩甲骨挙上運動を。週3回、姿勢と一緒に整えましょう。' },
+{ title: '利き手の使いすぎ改善', body: 'カバンを両肩で持つ、日常動作で反対の手も意識的に使うなど、日常生活での左右差是正が根本的な解決につながります。' }
+],
+severe: [
+{ title: '専門家による評価', body: '肩の高さの著しい差は、頸椎・胸椎の側弯や肩関節の問題を反映している可能性があります。整形外科での評価をお勧めします。' }
+]
+},
 youtube: 'https://www.youtube.com/results?search_query=shoulder+asymmetry+correction+exercises'
 },
 spine: {
-title: '脊柱の左右バランスを改善',
-body: '歩行中の脊柱の側屈は、脊柱起立筋・腰方形筋の左右差や、コアの不安定さから生じます。サイドプランク、デッドバグ、バードドッグなどの体幹トレーニングと、腰方形筋ストレッチを組み合わせましょう。痛みを伴う場合は専門家への相談をお勧めします。',
+title: '脊柱の左右バランス改善',
+variants: {
+mild: [
+{ title: '体幹の柔軟性維持', body: '脊柱の側屈は軽度です。キャットカウ、体幹の左右回旋ストレッチを毎日1〜2分行うと、柔軟性と対称性が保てます。' }
+],
+moderate: [
+{ title: '体幹側屈の改善', body: '歩行中の脊柱側屈が見られます。サイドプランク30秒×左右3セット、デッドバグ10回×2セット週3回。腰方形筋のストレッチも合わせて。' },
+{ title: '体幹対称性の再教育', body: '鏡の前で「まっすぐ立つ」「まっすぐ歩く」ことを視覚的にフィードバックしながら訓練しましょう。1日5分。' }
+],
+severe: [
+{ title: '専門家による評価が必要', body: '脊柱の著しい側屈は、脊柱側弯症や神経学的問題の可能性もあります。整形外科での評価を強くお勧めします。' }
+]
+},
 youtube: 'https://www.youtube.com/results?search_query=lateral+spine+correction+exercises'
 }
+};
+
+// 高齢者向けの補足文（年齢帯に応じて末尾に追加）
+const AGE_ADDENDA = {
+young: '',
+senior: ' 実施の際は無理をせず、痛みが出たら中止してください。',
+elderly: ' 必ず手すりや壁に手を添えて安全を確保し、家族や介助者と一緒に行ってください。転倒予防を最優先にしましょう。'
+};
+
+// 深刻度判定
+function getSeverity(score) {
+if (score >= 70) return 'mild';
+if (score >= 50) return 'moderate';
+return 'severe';
+}
+
+// 年齢帯判定
+function getAgeBand(age) {
+if (!age || age < 65) return 'young';
+if (age < 75) return 'senior';
+return 'elderly';
+}
+
+// 個別化されたアドバイスを取得
+// userId + timestamp をシード的に使ってバリエーションを選ぶ（利用者ごとに一貫、時期ごとに変化）
+function getPersonalizedAdvice(metricKey, score, age, userIdSeed) {
+const bank = ADVICE_BANK_V2[metricKey];
+if (!bank) return null;
+
+const severity = getSeverity(score);
+const variants = bank.variants[severity] || bank.variants.mild;
+
+// シードで安定的にバリエーションを選ぶ
+const seed = (userIdSeed + metricKey.charCodeAt(0)) % variants.length;
+const chosen = variants[Math.abs(seed)] || variants[0];
+
+const ageBand = getAgeBand(age);
+const addendum = AGE_ADDENDA[ageBand];
+
+return {
+title: chosen.title,
+body: chosen.body + addendum,
+youtube: bank.youtube
+};
+}
+
+// 旧形式のADVICE_BANKも互換性のため残す（他の関数がまだ使用）
+const ADVICE_BANK = {
+posture: { title: '体幹をまっすぐに保つ', body: ADVICE_BANK_V2.posture.variants.moderate[0].body, youtube: ADVICE_BANK_V2.posture.youtube },
+head: { title: '頭部位置の改善', body: ADVICE_BANK_V2.head.variants.moderate[0].body, youtube: ADVICE_BANK_V2.head.youtube },
+pelvic: { title: '骨盤の水平性の改善', body: ADVICE_BANK_V2.pelvic.variants.moderate[0].body, youtube: ADVICE_BANK_V2.pelvic.youtube },
+symmetry: { title: '左右対称性の改善', body: ADVICE_BANK_V2.symmetry.variants.moderate[0].body, youtube: ADVICE_BANK_V2.symmetry.youtube },
+rhythm: { title: 'リズムの安定性の改善', body: ADVICE_BANK_V2.rhythm.variants.moderate[0].body, youtube: ADVICE_BANK_V2.rhythm.youtube },
+sway: { title: '骨盤の左右動揺の改善', body: ADVICE_BANK_V2.sway.variants.moderate[0].body, youtube: ADVICE_BANK_V2.sway.youtube },
+shoulder: { title: '肩の左右差の改善', body: ADVICE_BANK_V2.shoulder.variants.moderate[0].body, youtube: ADVICE_BANK_V2.shoulder.youtube },
+spine: { title: '脊柱の左右バランス改善', body: ADVICE_BANK_V2.spine.variants.moderate[0].body, youtube: ADVICE_BANK_V2.spine.youtube }
 };
 
 const PAIN_ADVICE = {
@@ -6099,15 +6323,25 @@ metricSummaryHTML = `
 
 // 処方箋（最も低い項目TOP3）
 const sortedKeys = Object.keys(metricAvgs).sort((a, b) => metricAvgs[a] - metricAvgs[b]).slice(0, 3);
+
+// 利用者ID + 現在の月を使ってバリエーションを選ぶ
+// → 利用者ごとに異なる内容、同じ利用者でも月が変われば異なる内容
+const userIdSeed = (parseInt(u.id?.toString().slice(-4) || '0') || 0) + new Date().getMonth();
+
 const adviceItems = sortedKeys.map((key, idx) => {
-const advice = ADVICE_BANK[key];
+const score = Math.round(metricAvgs[key]);
+const advice = getPersonalizedAdvice(key, score, u.age, userIdSeed);
 if (!advice) return '';
+const severity = getSeverity(score);
+const severityLabel = severity === 'severe' ? '要注意' : severity === 'moderate' ? '改善対象' : '維持向上';
+const severityColor = severity === 'severe' ? '#c1654c' : severity === 'moderate' ? '#d4a574' : '#2d6a4f';
 return `
 <div class="advice-block">
-<div style="display:flex;align-items:baseline;gap:8px;margin-bottom:4px;">
+<div style="display:flex;align-items:baseline;gap:8px;margin-bottom:4px;flex-wrap:wrap;">
 <span class="advice-num">0${idx + 1}</span>
 <h3 style="font-family:'Fraunces',serif;font-weight:500;font-size:16px;margin:0;">${advice.title}</h3>
-<span style="font-size:11px;color:#666;">（平均スコア: ${Math.round(metricAvgs[key])}点）</span>
+<span style="font-size:11px;color:#666;">（平均: ${score}点）</span>
+<span style="font-size:10px;background:${severityColor};color:white;padding:2px 6px;border-radius:2px;">${severityLabel}</span>
 </div>
 <p style="font-size:13px;line-height:1.6;color:#333;margin:0 0 4px 0;">${advice.body}</p>
 ${advice.youtube ? `<p style="font-size:10px;color:#2d6a4f;margin:0;">参考動画: ${advice.youtube}</p>` : ''}
@@ -6116,7 +6350,7 @@ ${advice.youtube ? `<p style="font-size:10px;color:#2d6a4f;margin:0;">参考動�
 }).filter(Boolean);
 
 if (adviceItems.length > 0) {
-adviceSummaryHTML = `<h2>具体的な処方箋（優先度順）</h2>${adviceItems.join('')}`;
+adviceSummaryHTML = `<h2>具体的な処方箋（利用者別・優先度順）</h2>${adviceItems.join('')}`;
 }
 }
 
