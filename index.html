@@ -3616,7 +3616,7 @@ function scoreGait(frames, viewpoint = 'side') {
 
   if (isBack) {
     // 背面モード: 骨盤動揺・肩の左右差・脊柱側屈・対称性・リズムを重視
-    const swayScore = clampScore(avgSway, 0.04, 0.20);
+    const swayScore = clampScore(avgSway, 0.07, 0.25);
     const shoulderScore = clampScore(avgShoulderTilt, 0.04, 0.20);
     const spineScore = clampScore(avgSpineTilt, 0.05, 0.25);
     const pelvicScore = clampScore(avgPelvic, 0.05, 0.25);
