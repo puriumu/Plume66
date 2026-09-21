@@ -1425,6 +1425,16 @@ import { PoseLandmarker, FilesetResolver, DrawingUtils } from
 
 const $ = (id) => document.getElementById(id);
 
+// ============== ランドマーク定数（初期化順の問題を避けるため最上部に配置） ==============
+const L = {
+  NOSE: 0, L_SHOULDER: 11, R_SHOULDER: 12,
+  L_ELBOW: 13, R_ELBOW: 14,
+  L_WRIST: 15, R_WRIST: 16,
+  L_HIP: 23, R_HIP: 24,
+  L_KNEE: 25, R_KNEE: 26,
+  L_ANKLE: 27, R_ANKLE: 28
+};
+
 // ============== Storage (now per-user) ==============
 const STORAGE = {
   users: 'gaitlab.users',
@@ -3140,13 +3150,6 @@ async function runGuideCheck(video) {
 
   return { ok: true, message: okMessage };
 }
-
-const L = {
-  NOSE: 0, L_SHOULDER: 11, R_SHOULDER: 12,
-  L_HIP: 23, R_HIP: 24,
-  L_KNEE: 25, R_KNEE: 26,
-  L_ANKLE: 27, R_ANKLE: 28
-};
 
 function midpoint(a, b) { return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }; }
 function mean(a) { return a.reduce((s, v) => s + v, 0) / a.length; }
