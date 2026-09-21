@@ -1367,6 +1367,19 @@
       <button class="btn btn-ghost" id="clearVideosBtn" style="padding: 6px 12px; font-size: 11px; margin-top: 8px;">保存済み動画をすべて削除</button>
     </div>
 
+    <!-- 背景除去AI設定 -->
+    <div style="border-top: 1px solid var(--line); padding-top: 14px; margin-top: 14px;">
+      <p style="font-family: 'Fraunces', serif; font-size: 16px; margin-bottom: 8px;">背景除去AI（検出精度向上）</p>
+      <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer;">
+        <input type="checkbox" id="bgRemovalCheck" />
+        <span>手すりや他の人の映り込みを軽減する</span>
+      </label>
+      <p style="font-size: 11px; color: var(--ink-soft); margin-top: 6px;">
+        ONにすると背景を薄くグレーで覆い、AIが本人の姿勢に集中しやすくなります。<br>
+        解析時間が少し長くなります（約20〜30%）。
+      </p>
+    </div>
+
     <!-- バックアップ設定 -->
     <div style="border-top: 1px solid var(--line); padding-top: 14px; margin-top: 14px;">
       <p style="font-family: 'Fraunces', serif; font-size: 16px; margin-bottom: 8px;">バックアップ</p>
@@ -1420,7 +1433,7 @@
 </div>
 
 <script type="module">
-import { PoseLandmarker, FilesetResolver, DrawingUtils } from
+import { PoseLandmarker, FilesetResolver, DrawingUtils, ImageSegmenter } from
   'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs';
 
 const $ = (id) => document.getElementById(id);
@@ -1801,6 +1814,7 @@ $('profileBtn').addEventListener('click', () => {
   refreshVideoStorageInfo();
   refreshBackupInfo();
   $('saveVideoCheck').checked = getAppSettings().saveVideo || false;
+  $('bgRemovalCheck').checked = getAppSettings().bgRemoval || false;
 });
 $('profileCloseBtn').addEventListener('click', () => $('profileModal').classList.remove('active'));
 $('profileModal').addEventListener('click', (e) => {
@@ -1859,6 +1873,23 @@ $('saveVideoCheck').addEventListener('change', (e) => {
   const s = getAppSettings();
   s.saveVideo = e.target.checked;
   saveAppSettings(s);
+});
+
+// ===== 背景除去AI設定 =====
+$('bgRemovalCheck').addEventListener('change', async (e) => {
+  const s = getAppSettings();
+  s.bgRemoval = e.target.checked;
+  saveAppSettings(s);
+  // ONにした場合、モデルを先読み
+  if (e.target.checked && !imageSegmenter && !segmenterLoadFailed) {
+    await initSegmenter();
+    if (segmenterLoadFailed) {
+      alert('背景除去モデルの読み込みに失敗しました。ネットワーク状況をご確認ください。');
+      s.bgRemoval = false;
+      saveAppSettings(s);
+      e.target.checked = false;
+    }
+  }
 });
 
 async function refreshVideoStorageInfo() {
@@ -2106,6 +2137,8 @@ $('takeCount').addEventListener('change', (e) => {
 // ============== Pose model ==============
 let poseLandmarker = null;
 let drawingUtils = null;
+let imageSegmenter = null;
+let segmenterLoadFailed = false;
 
 async function initPose() {
   $('statusText').textContent = 'モデル読み込み中...';
@@ -2123,6 +2156,87 @@ async function initPose() {
   });
   drawingUtils = new DrawingUtils($('canvas').getContext('2d'));
   $('statusText').textContent = 'モデル準備完了';
+}
+
+// ============== 背景除去（Image Segmenter）==============
+// 手すりや他の人の映り込みを軽減して姿勢検出の精度を上げる
+async function initSegmenter() {
+  if (imageSegmenter || segmenterLoadFailed) return imageSegmenter;
+  try {
+    $('statusText').textContent = '背景除去モデル読み込み中...';
+    const vision = await FilesetResolver.forVisionTasks(
+      'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm'
+    );
+    imageSegmenter = await ImageSegmenter.createFromOptions(vision, {
+      baseOptions: {
+        modelAssetPath:
+          'https://storage.googleapis.com/mediapipe-models/image_segmenter/selfie_segmenter/float16/1/selfie_segmenter.tflite',
+        delegate: 'GPU'
+      },
+      runningMode: 'VIDEO',
+      outputCategoryMask: true,
+      outputConfidenceMasks: false
+    });
+    return imageSegmenter;
+  } catch (err) {
+    console.warn('背景除去モデルの読み込みに失敗しました:', err);
+    segmenterLoadFailed = true;
+    return null;
+  }
+}
+
+// フレームに背景マスクを適用し、人物以外を薄いグレーに置換した画像を返す
+// これによりPoseLandmarkerが手すりや他人を誤検出しづらくなる
+async function applyBackgroundRemoval(video, timestamp) {
+  if (!imageSegmenter) return null;
+  try {
+    const segResult = imageSegmenter.segmentForVideo(video, timestamp);
+    const mask = segResult.categoryMask;
+    if (!mask) return null;
+
+    const w = video.videoWidth;
+    const h = video.videoHeight;
+
+    // オフスクリーンcanvasに動画を描画
+    const offCanvas = document.createElement('canvas');
+    offCanvas.width = w;
+    offCanvas.height = h;
+    const offCtx = offCanvas.getContext('2d');
+    offCtx.drawImage(video, 0, 0, w, h);
+    const imageData = offCtx.getImageData(0, 0, w, h);
+    const pixels = imageData.data;
+
+    // マスクデータ取得（selfie_segmenterでは0=人物、それ以外=背景）
+    const maskData = mask.getAsUint8Array();
+    const mw = mask.width;
+    const mh = mask.height;
+
+    // マスクを画像サイズにスケーリングしながら適用
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        const mx = Math.floor(x * mw / w);
+        const my = Math.floor(y * mh / h);
+        const maskIdx = my * mw + mx;
+        const isPerson = maskData[maskIdx] === 0;
+
+        if (!isPerson) {
+          // 背景は中間グレーで薄く覆う（元画像を残しつつ検出への影響を弱める）
+          const pixIdx = (y * w + x) * 4;
+          // 元色と灰色を70:30でブレンド
+          pixels[pixIdx]     = pixels[pixIdx]     * 0.3 + 128 * 0.7;
+          pixels[pixIdx + 1] = pixels[pixIdx + 1] * 0.3 + 128 * 0.7;
+          pixels[pixIdx + 2] = pixels[pixIdx + 2] * 0.3 + 128 * 0.7;
+        }
+      }
+    }
+
+    offCtx.putImageData(imageData, 0, 0);
+    mask.close();
+    return offCanvas;
+  } catch (err) {
+    console.warn('背景除去処理エラー:', err);
+    return null;
+  }
 }
 
 // ============== Upload handlers ==============
@@ -2263,11 +2377,25 @@ async function showPreviewFrames() {
   // 5フレーム抽出
   previewFrames = [];
   const samples = [0.1, 0.3, 0.5, 0.7, 0.9].map(p => video.duration * p);
+
+  // プレビュー時も背景除去を適用（ONの場合）
+  const usePreviewBgRemoval = !!getAppSettings().bgRemoval;
+  if (usePreviewBgRemoval && !imageSegmenter && !segmenterLoadFailed) {
+    await initSegmenter();
+  }
+  const previewBgActive = usePreviewBgRemoval && imageSegmenter;
+
   for (let i = 0; i < samples.length; i++) {
     video.currentTime = samples[i];
     await new Promise(res => video.onseeked = res);
+    // 背景除去を適用した画像で検出
+    let detectionSource = video;
+    if (previewBgActive) {
+      const processed = await applyBackgroundRemoval(video, performance.now() + i * 100);
+      if (processed) detectionSource = processed;
+    }
     // 骨格検出
-    const result = poseLandmarker.detectForVideo(video, performance.now() + i * 100);
+    const result = poseLandmarker.detectForVideo(detectionSource, performance.now() + i * 100);
     const lm = (result.landmarks && result.landmarks[0])
       ? result.landmarks[0].map(p => ({ x: p.x, y: p.y, z: p.z, v: p.visibility != null ? p.visibility : 1 }))
       : null;
@@ -2917,7 +3045,16 @@ async function analyzeVideo() {
   const fps = 12;
   const totalFrames = Math.floor(duration * fps);
 
-  $('statusText').textContent = `${totalFrames}フレームを解析します`;
+  // 背景除去モード確認・モデル準備
+  const useBgRemoval = !!getAppSettings().bgRemoval;
+  if (useBgRemoval && !imageSegmenter && !segmenterLoadFailed) {
+    await initSegmenter();
+  }
+  const bgRemovalActive = useBgRemoval && imageSegmenter;
+
+  $('statusText').textContent = bgRemovalActive
+    ? `${totalFrames}フレームを解析（背景除去ON）`
+    : `${totalFrames}フレームを解析します`;
 
   const guideCheckResult = await runGuideCheck(video);
 
@@ -2926,7 +3063,15 @@ async function analyzeVideo() {
     video.currentTime = t;
     await new Promise(res => video.onseeked = res);
 
-    const result = poseLandmarker.detectForVideo(video, performance.now());
+    // 背景除去を適用して、ノイズの少ない画像で姿勢検出する
+    let detectionSource = video;
+    let bgProcessedCanvas = null;
+    if (bgRemovalActive) {
+      bgProcessedCanvas = await applyBackgroundRemoval(video, performance.now());
+      if (bgProcessedCanvas) detectionSource = bgProcessedCanvas;
+    }
+
+    const result = poseLandmarker.detectForVideo(detectionSource, performance.now());
 
     ctx.save();
     ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
