@@ -1380,6 +1380,21 @@
       </p>
     </div>
 
+    <!-- AIモデル品質設定 -->
+    <div style="border-top: 1px solid var(--line); padding-top: 14px; margin-top: 14px;">
+      <p style="font-family: 'Fraunces', serif; font-size: 16px; margin-bottom: 8px;">姿勢検出AIの品質</p>
+      <select id="poseModelQualitySelect" style="width: 100%; padding: 8px; font-size: 13px; border: 1px solid var(--line); border-radius: 3px; background: var(--paper);">
+        <option value="lite">軽量版（高速・標準的な精度）</option>
+        <option value="full">標準版（バランス型・推奨）</option>
+        <option value="heavy">高精度版（最高精度・処理は遅め）</option>
+      </select>
+      <p style="font-size: 11px; color: var(--ink-soft); margin-top: 6px;">
+        <strong>軽量版:</strong> 短時間で結果が出る。日常の測定向き。<br>
+        <strong>標準版:</strong> 精度と速度のバランスが良い。多くの場面でおすすめ。<br>
+        <strong>高精度版:</strong> 細かな姿勢の違いを見たい時に。処理時間が2〜3倍かかります。
+      </p>
+    </div>
+
     <!-- バックアップ設定 -->
     <div style="border-top: 1px solid var(--line); padding-top: 14px; margin-top: 14px;">
       <p style="font-family: 'Fraunces', serif; font-size: 16px; margin-bottom: 8px;">バックアップ</p>
@@ -1433,8 +1448,9 @@
 </div>
 
 <script type="module">
+// MediaPipe Tasks Vision 最新版 (0.10.22) - 検出精度と速度が向上
 import { PoseLandmarker, FilesetResolver, DrawingUtils, ImageSegmenter } from
-  'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs';
+  'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22-rc.20250304/vision_bundle.mjs';
 
 const $ = (id) => document.getElementById(id);
 
@@ -1467,7 +1483,7 @@ function getStaff() { return load(STORAGE.staff, []); }
 function saveStaff(list) { saveLS(STORAGE.staff, list); }
 
 // アプリ設定（動画保存ON/OFFなど）
-function getAppSettings() { return load(STORAGE.appSettings, { saveVideo: false }); }
+function getAppSettings() { return load(STORAGE.appSettings, { saveVideo: false, bgRemoval: false, poseModelQuality: 'lite' }); }
 function saveAppSettings(s) { saveLS(STORAGE.appSettings, s); }
 
 // User data structure: { id, name, age, gender, note, history: [], goal: null, badges: [] }
@@ -1815,6 +1831,7 @@ $('profileBtn').addEventListener('click', () => {
   refreshBackupInfo();
   $('saveVideoCheck').checked = getAppSettings().saveVideo || false;
   $('bgRemovalCheck').checked = getAppSettings().bgRemoval || false;
+  $('poseModelQualitySelect').value = getAppSettings().poseModelQuality || 'lite';
 });
 $('profileCloseBtn').addEventListener('click', () => $('profileModal').classList.remove('active'));
 $('profileModal').addEventListener('click', (e) => {
@@ -1873,6 +1890,16 @@ $('saveVideoCheck').addEventListener('change', (e) => {
   const s = getAppSettings();
   s.saveVideo = e.target.checked;
   saveAppSettings(s);
+});
+
+// ===== 姿勢検出AIモデル品質設定 =====
+$('poseModelQualitySelect').addEventListener('change', async (e) => {
+  const s = getAppSettings();
+  s.poseModelQuality = e.target.value;
+  saveAppSettings(s);
+  // 次回の測定でモデルが自動的に切り替わる旨をユーザーに通知
+  const labels = { lite: '軽量版', full: '標準版', heavy: '高精度版' };
+  alert(`次の測定から「${labels[e.target.value]}」で解析します。\n初回はモデルのダウンロードで少し時間がかかります。`);
 });
 
 // ===== 背景除去AI設定 =====
@@ -2140,22 +2167,43 @@ let drawingUtils = null;
 let imageSegmenter = null;
 let segmenterLoadFailed = false;
 
+// モデル品質による姿勢検出モデルのURL
+const POSE_MODEL_URLS = {
+  lite: 'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/latest/pose_landmarker_lite.task',
+  full: 'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_full/float16/latest/pose_landmarker_full.task',
+  heavy: 'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_heavy/float16/latest/pose_landmarker_heavy.task'
+};
+const WASM_URL = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22-rc.20250304/wasm';
+let currentPoseModelQuality = 'lite'; // 現在ロード中のモデル
+
 async function initPose() {
-  $('statusText').textContent = 'モデル読み込み中...';
-  const vision = await FilesetResolver.forVisionTasks(
-    'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm'
-  );
+  const quality = getAppSettings().poseModelQuality || 'lite';
+  $('statusText').textContent = `AIモデル読み込み中 (${quality})...`;
+  const vision = await FilesetResolver.forVisionTasks(WASM_URL);
   poseLandmarker = await PoseLandmarker.createFromOptions(vision, {
     baseOptions: {
-      modelAssetPath:
-        'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task',
+      modelAssetPath: POSE_MODEL_URLS[quality] || POSE_MODEL_URLS.lite,
       delegate: 'GPU'
     },
     runningMode: 'VIDEO',
-    numPoses: 1
+    numPoses: 1,
+    minPoseDetectionConfidence: 0.5,
+    minPosePresenceConfidence: 0.5,
+    minTrackingConfidence: 0.5
   });
+  currentPoseModelQuality = quality;
   drawingUtils = new DrawingUtils($('canvas').getContext('2d'));
   $('statusText').textContent = 'モデル準備完了';
+}
+
+// モデル品質が変わったらPoseLandmarkerを再作成
+async function ensureCorrectPoseModel() {
+  const desired = getAppSettings().poseModelQuality || 'lite';
+  if (poseLandmarker && currentPoseModelQuality !== desired) {
+    try { poseLandmarker.close(); } catch (e) {}
+    poseLandmarker = null;
+    await initPose();
+  }
 }
 
 // ============== 背景除去（Image Segmenter）==============
@@ -2164,9 +2212,7 @@ async function initSegmenter() {
   if (imageSegmenter || segmenterLoadFailed) return imageSegmenter;
   try {
     $('statusText').textContent = '背景除去モデル読み込み中...';
-    const vision = await FilesetResolver.forVisionTasks(
-      'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm'
-    );
+    const vision = await FilesetResolver.forVisionTasks(WASM_URL);
     imageSegmenter = await ImageSegmenter.createFromOptions(vision, {
       baseOptions: {
         modelAssetPath:
@@ -2332,6 +2378,14 @@ async function handleFile(file) {
       return;
     }
     $('analysisView').style.display = 'none';
+  } else {
+    // 設定変更でモデル品質が変わっていたら再読み込み
+    try {
+      await ensureCorrectPoseModel();
+    } catch (err) {
+      showError('モデル切り替えに失敗しました: ' + err.message);
+      return;
+    }
   }
 
   const url = URL.createObjectURL(file);
